@@ -82,7 +82,6 @@ class TestManualSubmission(TestCase):
         mock_from_database.assert_called_once()
         mock_from_icat.assert_called_once()
 
-    @patch('model.database.access.get_reduction_run')
     def test_get_from_database_no_run(self, mock_get_run):
         """
         Test: None is returned
