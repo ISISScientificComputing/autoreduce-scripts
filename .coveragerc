@@ -1,9 +1,6 @@
 [run]
 branch = True
-omit = 
-    WebApp/autoreduce_webapp/selenium_tests/*
-    WebApp/autoreduce_webapp/reduction_viewer/migrations/*
-    WebApp/autoreduce_webapp/reduction_variables/migrations/*
+omit =
     # Requires external deps
     */virtualenv/*
     *.so
