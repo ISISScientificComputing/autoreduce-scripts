@@ -10,10 +10,13 @@ from setuptools import setup, find_packages
 setup(
     name="autoreduce_scripts",
     version="22.0.0.dev",
-    description="ISIS Autoreduction queue processor",
+    description="ISIS Autoreduce helper scripts",
     author="ISIS Autoreduction Team",
-    url="https://github.com/ISISScientificComputing/autoreduce/",
-    install_requires=["autoreduce_qp"],
+    url="https://github.com/ISISScientificComputing/autoreduce-scripts/",
+    install_requires=[
+        "autoreduce_qp",
+        "GitPython==3.1.14"  # for backup_reduction_scripts.py
+    ],
     packages=find_packages(),
     #   entry_points={"console_scripts": ["autoreduce-qp-start = autoreduce_qp.queue_processor.queue_listener:main"]},
     classifiers=[
