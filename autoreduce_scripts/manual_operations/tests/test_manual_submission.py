@@ -14,9 +14,9 @@ from autoreduce_utils.clients.icat_client import ICATClient
 from autoreduce_utils.clients.queue_client import QueueClient
 from autoreduce_utils.message.message import Message
 from django.test import TestCase
-from autoreduce_qp.scripts.manual_operations import manual_submission as ms
-from autoreduce_qp.scripts.manual_operations.tests.test_manual_remove import (create_experiment_and_instrument,
-                                                                              make_test_run)
+from autoreduce_scripts.manual_operations import manual_submission as ms
+from autoreduce_scripts.manual_operations.tests.test_manual_remove import (create_experiment_and_instrument,
+                                                                           make_test_run)
 
 
 # pylint:disable=no-self-use
@@ -70,9 +70,9 @@ class TestManualSubmission(TestCase):
             ret_obj[0].reference_number = self.valid_return[1]
         return ret_obj
 
-    @patch('autoreduce_qp.scripts.manual_operations.manual_submission.get_location_and_rb_from_database',
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_location_and_rb_from_database',
            return_value=None)
-    @patch('autoreduce_qp.scripts.manual_operations.manual_submission.get_location_and_rb_from_icat')
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_location_and_rb_from_icat')
     def test_get_checks_database_then_icat(self, mock_from_icat, mock_from_database):
         """
         Test: Data for a given run is searched for in the database before calling ICAT
@@ -100,7 +100,7 @@ class TestManualSubmission(TestCase):
         expected = ('test/file/path/2.raw', 1231231)
         self.assertEqual(expected, actual)
 
-    @patch('autoreduce_qp.scripts.manual_operations.manual_submission.get_icat_instrument_prefix')
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_icat_instrument_prefix')
     def test_get_from_icat_when_file_exists_without_zeroes(self, _):
         """
         Test: Data for a given run can be retrieved from ICAT in the expected format
@@ -111,7 +111,7 @@ class TestManualSubmission(TestCase):
         self.loc_and_rb_args["icat_client"].execute_query.assert_called_once()
         self.assertEqual(location_and_rb, self.valid_return)
 
-    @patch('autoreduce_qp.scripts.manual_operations.manual_submission.get_icat_instrument_prefix', return_value='MAR')
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_icat_instrument_prefix', return_value='MAR')
     def test_icat_uses_prefix_mapper(self, _):
         """
         Test: The instrument shorthand name is used
@@ -131,7 +131,7 @@ class TestManualSubmission(TestCase):
                                                           " df.name = 'MAR00123.nxs' INCLUDE"
                                                           " df.dataset AS ds, ds.investigation")
 
-    @patch('autoreduce_qp.scripts.manual_operations.manual_submission.get_icat_instrument_prefix')
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_icat_instrument_prefix')
     def test_get_location_and_rb_from_icat_when_first_file_not_found(self, _):
         """
         Test: that get_location_and_rb_from_icat can handle a number of failed ICAT
@@ -150,8 +150,8 @@ class TestManualSubmission(TestCase):
         # check returned format is OK
         self.assertEqual(location_and_rb, self.valid_return)
 
-    @patch('autoreduce_qp.scripts.manual_operations.manual_submission.get_location_and_rb_from_database')
-    @patch('autoreduce_qp.scripts.manual_operations.manual_submission.get_location_and_rb_from_icat')
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_location_and_rb_from_database')
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_location_and_rb_from_icat')
     def test_get_when_run_number_not_int(self, mock_from_icat, mock_from_database):
         """
         Test: A SystemExit is raised and neither the database nor ICAT are checked for data
@@ -178,7 +178,7 @@ class TestManualSubmission(TestCase):
         self.sub_run_args["active_mq_client"].send.assert_called_with('/queue/DataReady', message, priority=1)
 
     @patch('icat.Client')
-    @patch('autoreduce_qp.scripts.manual_operations.manual_submission.ICATClient.connect')
+    @patch('autoreduce_scripts.manual_operations.manual_submission.ICATClient.connect')
     def test_icat_login_valid(self, mock_connect, _):
         """
         Test: A valid ICAT client is returned
@@ -190,7 +190,7 @@ class TestManualSubmission(TestCase):
         mock_connect.assert_called_once()
 
     @patch('icat.Client')
-    @patch('autoreduce_qp.scripts.manual_operations.manual_submission.ICATClient.connect')
+    @patch('autoreduce_scripts.manual_operations.manual_submission.ICATClient.connect')
     def test_icat_login_invalid(self, mock_connect, _):
         """
         Test: None is returned
@@ -200,7 +200,7 @@ class TestManualSubmission(TestCase):
         mock_connect.side_effect = con_exp
         self.assertIsNone(ms.login_icat())
 
-    @patch('autoreduce_qp.scripts.manual_operations.manual_submission.QueueClient.connect')
+    @patch('autoreduce_scripts.manual_operations.manual_submission.QueueClient.connect')
     def test_queue_login_valid(self, _):
         """
         Test: A valid Queue client is returned
@@ -210,7 +210,7 @@ class TestManualSubmission(TestCase):
         actual = ms.login_queue()
         self.assertIsInstance(actual, QueueClient)
 
-    @patch('autoreduce_qp.scripts.manual_operations.manual_submission.QueueClient.connect')
+    @patch('autoreduce_scripts.manual_operations.manual_submission.QueueClient.connect')
     def test_queue_login_invalid(self, mock_connect):
         """
         Test: An exception is raised
@@ -232,11 +232,11 @@ class TestManualSubmission(TestCase):
                           data_file_location=None,
                           run_number=None))
 
-    @patch('autoreduce_qp.scripts.manual_operations.manual_submission.login_icat')
-    @patch('autoreduce_qp.scripts.manual_operations.manual_submission.login_queue')
-    @patch('autoreduce_qp.scripts.manual_operations.manual_submission.get_location_and_rb')
-    @patch('autoreduce_qp.scripts.manual_operations.manual_submission.submit_run')
-    @patch('autoreduce_qp.scripts.manual_operations.manual_submission.get_run_range')
+    @patch('autoreduce_scripts.manual_operations.manual_submission.login_icat')
+    @patch('autoreduce_scripts.manual_operations.manual_submission.login_queue')
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_location_and_rb')
+    @patch('autoreduce_scripts.manual_operations.manual_submission.submit_run')
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_range')
     def test_main_valid(self, mock_run_range, mock_submit, mock_get_loc, mock_queue, mock_icat):
         """
         Test: The control methods are called in the correct order
@@ -263,8 +263,8 @@ class TestManualSubmission(TestCase):
         mock_get_loc.assert_called_once_with(mock_icat_client, 'TEST', 1111, "nxs")
         mock_submit.assert_called_once_with(mock_queue_client, 2222, 'TEST', 'test/file/path', 1111)
 
-    @patch('autoreduce_qp.scripts.manual_operations.manual_submission.login_icat')
-    @patch('autoreduce_qp.scripts.manual_operations.manual_submission.get_run_range')
+    @patch('autoreduce_scripts.manual_operations.manual_submission.login_icat')
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_range')
     def test_main_bad_client(self, mock_get_run_range, mock_icat):
         """
         Test: A RuntimeError is raised

@@ -8,24 +8,14 @@
 Functionality to remove a reduction run from the database
 """
 from __future__ import print_function
-import django
-from django.conf import settings
-from autoreduce_scripts.autoreduce_django.settings import DATABASES, INSTALLED_APPS
-
-if not settings.configured:
-    settings.configure(DATABASES=DATABASES, INSTALLED_APPS=INSTALLED_APPS)
-    django.setup()
-
 import sys
 
 import fire
 from django.db import IntegrityError
 from autoreduce_db.reduction_viewer.models import DataLocation, ReductionRun, ReductionLocation
-from autoreduce_db.instrument.models import RunVariable
+from autoreduce_db.instrument.models import RunVariable, Instrument
 
-from autoreduce_qp.model.database import access as db
-
-from autoreduce_qp.scripts.manual_operations.util import get_run_range
+from autoreduce_scripts.manual_operations.util import get_run_range
 
 
 class ManualRemove:
@@ -46,7 +36,7 @@ class ManualRemove:
         :param run_number: (int) The run to search for in the database
         :return: (QuerySet) The result of the query
         """
-        instrument_record = db.get_instrument(self.instrument)
+        instrument_record, _ = Instrument.objects.get_or_create(name=self.instrument)
         result = ReductionRun.objects \
             .filter(instrument=instrument_record.id) \
             .filter(run_number=run_number) \

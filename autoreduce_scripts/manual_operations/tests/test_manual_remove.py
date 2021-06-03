@@ -16,7 +16,7 @@ from django.test import TestCase
 
 from autoreduce_qp.model.database.records import create_reduction_run_record
 from autoreduce_qp.queue_processor.tests.test_handle_message import FakeMessage
-from autoreduce_qp.scripts.manual_operations.manual_remove import (ManualRemove, main, remove, user_input_check)
+from autoreduce_scripts.manual_operations.manual_remove import (ManualRemove, main, remove, user_input_check)
 
 # pylint:disable=no-member
 
@@ -82,7 +82,7 @@ class TestManualRemove(TestCase):
         actual = self.manual_remove.find_run_versions_in_database(run_number="000")
         self.assertEqual(0, len(actual))
 
-    @patch("autoreduce_qp.scripts.manual_operations.manual_remove.ManualRemove.run_not_found")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.run_not_found")
     def test_process_results_not_found(self, mock_not_found):
         """
         Test: run_not_found is called
@@ -95,8 +95,8 @@ class TestManualRemove(TestCase):
         self.manual_remove.process_results(delete_all_versions=True)
         mock_not_found.assert_called_once()
 
-    @patch("autoreduce_qp.scripts.manual_operations.manual_remove.ManualRemove.run_not_found")
-    @patch("autoreduce_qp.scripts.manual_operations.manual_remove.ManualRemove.multiple_versions_found")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.run_not_found")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.multiple_versions_found")
     def test_process_results_single(self, mock_multi, mock_not_found):
         """
         Test: That the code does not call multiple_versions_found
@@ -107,7 +107,7 @@ class TestManualRemove(TestCase):
         mock_multi.assert_not_called()
         mock_not_found.assert_not_called()
 
-    @patch("autoreduce_qp.scripts.manual_operations.manual_remove.ManualRemove.multiple_versions_found")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.multiple_versions_found")
     def test_process_results_multi(self, mock_multi_version):
         """
         Test: process_results function routes to correct function if the run has multiple versions
@@ -119,7 +119,7 @@ class TestManualRemove(TestCase):
         self.manual_remove.process_results(delete_all_versions=False)
         mock_multi_version.assert_called_once()
 
-    @patch("autoreduce_qp.scripts.manual_operations.manual_remove.ManualRemove.multiple_versions_found")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.multiple_versions_found")
     def test_process_results_multi_with_delete_all(self, mock_multi_version):
         """
         Test: process_results function doesn't ask for user input with delete_all_versions=True
@@ -140,7 +140,7 @@ class TestManualRemove(TestCase):
         self.manual_remove.run_not_found("101")
         self.assertEqual(0, len(self.manual_remove.to_delete))
 
-    @patch("autoreduce_qp.scripts.manual_operations.manual_remove.ManualRemove.validate_csv_input")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.validate_csv_input")
     @patch.object(builtins, "input")
     def test_multiple_versions_found_single_input(self, mock_input, mock_validate_csv):
         """
@@ -155,7 +155,7 @@ class TestManualRemove(TestCase):
         self.assertEqual(1, mock_validate_csv.call_count)
         mock_validate_csv.assert_has_calls([call("2")])
 
-    @patch("autoreduce_qp.scripts.manual_operations.manual_remove.ManualRemove.validate_csv_input")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.validate_csv_input")
     @patch.object(builtins, "input")
     def test_multiple_versions_retry_user_input(self, mock_input, mock_validate_csv):
         """
@@ -170,7 +170,7 @@ class TestManualRemove(TestCase):
         self.assertEqual(2, mock_validate_csv.call_count)
         mock_validate_csv.assert_has_calls([call("invalid"), call("2")])
 
-    @patch("autoreduce_qp.scripts.manual_operations.manual_remove.ManualRemove.validate_csv_input")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.validate_csv_input")
     @patch.object(builtins, "input")
     def test_multiple_versions_remove_one(self, mock_input, mock_validate_csv):
         """
@@ -186,7 +186,7 @@ class TestManualRemove(TestCase):
         self.assertEqual(1, len(self.manual_remove.to_delete["101"]))
         self.assertEqual("2", self.manual_remove.to_delete["101"][0].run_version)
 
-    @patch("autoreduce_qp.scripts.manual_operations.manual_remove.ManualRemove.validate_csv_input")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.validate_csv_input")
     @patch.object(builtins, "input")
     def test_multiple_versions_found_list_input(self, mock_input, mock_validate_csv):
         """
@@ -203,7 +203,7 @@ class TestManualRemove(TestCase):
         self.assertEqual("1", self.manual_remove.to_delete["101"][0].run_version)
         self.assertEqual("3", self.manual_remove.to_delete["101"][1].run_version)
 
-    @patch("autoreduce_qp.scripts.manual_operations.manual_remove.ManualRemove.validate_csv_input")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.validate_csv_input")
     @patch.object(builtins, "input")
     def test_multiple_versions_found_range_input(self, mock_input, mock_validate_csv):
         """
@@ -221,7 +221,7 @@ class TestManualRemove(TestCase):
         self.assertEqual("2", self.manual_remove.to_delete["101"][1].run_version)
         self.assertEqual("3", self.manual_remove.to_delete["101"][2].run_version)
 
-    @patch("autoreduce_qp.scripts.manual_operations.manual_remove.ManualRemove.validate_csv_input")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.validate_csv_input")
     @patch.object(builtins, "input")
     def test_multiple_versions_found_range_input_reversed(self, mock_input, mock_validate_csv):
         """
@@ -271,10 +271,10 @@ class TestManualRemove(TestCase):
         self.assertEqual((False, []), actual)
 
     # pylint:disable=no-self-use
-    @patch("autoreduce_qp.scripts.manual_operations.manual_remove.ManualRemove.find_run_versions_in_database")
-    @patch("autoreduce_qp.scripts.manual_operations.manual_remove.ManualRemove.process_results")
-    @patch("autoreduce_qp.scripts.manual_operations.manual_remove.ManualRemove.delete_records")
-    @patch("autoreduce_qp.scripts.manual_operations.manual_remove.get_run_range", return_value=range(1, 2))
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.find_run_versions_in_database")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.process_results")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.delete_records")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.get_run_range", return_value=range(1, 2))
     def test_main(self, mock_get_run_range, mock_delete, mock_process, mock_find):
         """
         Test: The correct control functions are called
@@ -287,11 +287,11 @@ class TestManualRemove(TestCase):
         mock_delete.assert_called_once()
 
     # pylint:disable=no-self-use
-    @patch("autoreduce_qp.scripts.manual_operations.manual_remove.ManualRemove.find_run_versions_in_database")
-    @patch("autoreduce_qp.scripts.manual_operations.manual_remove.ManualRemove.process_results")
-    @patch("autoreduce_qp.scripts.manual_operations.manual_remove.ManualRemove.delete_records")
-    @patch("autoreduce_qp.scripts.manual_operations.manual_remove.user_input_check")
-    @patch("autoreduce_qp.scripts.manual_operations.manual_remove.get_run_range", return_value=range(1, 12))
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.find_run_versions_in_database")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.process_results")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.delete_records")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.user_input_check")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.get_run_range", return_value=range(1, 12))
     def test_main_range_greater_than_ten(self, mock_get_run_range, mock_uic, mock_delete, mock_process, mock_find):
         """
         Test: The correct control functions are called including handle_input for many runs
@@ -305,10 +305,10 @@ class TestManualRemove(TestCase):
         mock_delete.assert_called()
 
     # pylint:disable=no-self-use
-    @patch("autoreduce_qp.scripts.manual_operations.manual_remove.ManualRemove.find_run_versions_in_database")
-    @patch("autoreduce_qp.scripts.manual_operations.manual_remove.ManualRemove.process_results")
-    @patch("autoreduce_qp.scripts.manual_operations.manual_remove.ManualRemove.delete_records")
-    @patch("autoreduce_qp.scripts.manual_operations.manual_remove.get_run_range", return_value=range(1, 10))
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.find_run_versions_in_database")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.process_results")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.delete_records")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.get_run_range", return_value=range(1, 10))
     def test_main_range_less_than_ten(self, mock_get_run_range, mock_delete, mock_process, mock_find):
         """
         Test: The correct control functions are called including handle_input for many runs
@@ -321,9 +321,9 @@ class TestManualRemove(TestCase):
         mock_delete.assert_called()
 
     # pylint:disable=no-self-use
-    @patch("autoreduce_qp.scripts.manual_operations.manual_remove.ManualRemove.find_run_versions_in_database")
-    @patch("autoreduce_qp.scripts.manual_operations.manual_remove.ManualRemove.process_results")
-    @patch("autoreduce_qp.scripts.manual_operations.manual_remove.ManualRemove.delete_records")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.find_run_versions_in_database")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.process_results")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.delete_records")
     def test_run(self, mock_delete, mock_process, mock_find):
         """
         Test: The correct control functions are called
@@ -339,7 +339,7 @@ class TestManualRemove(TestCase):
         Test: The correct query is run and associated records are removed
         When: Calling delete_data_location
         """
-        with patch("autoreduce_qp.scripts.manual_operations.manual_remove.DataLocation") as data_location:
+        with patch("autoreduce_scripts.manual_operations.manual_remove.DataLocation") as data_location:
             self.manual_remove.delete_data_location(123)
             data_location.objects.filter.assert_called_once_with(reduction_run_id=123)
 
@@ -348,7 +348,7 @@ class TestManualRemove(TestCase):
         Test: The correct query is run and associated records are removed
         When: Calling delete_reduction_location
         """
-        with patch("autoreduce_qp.scripts.manual_operations.manual_remove.ReductionLocation") as red_location:
+        with patch("autoreduce_scripts.manual_operations.manual_remove.ReductionLocation") as red_location:
             self.manual_remove.delete_reduction_location(123)
             red_location.objects.filter.assert_called_once_with(reduction_run_id=123)
 
@@ -357,7 +357,7 @@ class TestManualRemove(TestCase):
         Test: The correct query is run and associated records are removed
         When: Calling delete_reduction_run_location
         """
-        with patch("autoreduce_qp.scripts.manual_operations.manual_remove.ReductionRun") as red_run:
+        with patch("autoreduce_scripts.manual_operations.manual_remove.ReductionRun") as red_run:
             self.manual_remove.delete_reduction_run(123)
             red_run.objects.filter.assert_called_once_with(id=123)
 
@@ -372,7 +372,7 @@ class TestManualRemove(TestCase):
         self.manual_remove.delete_records()
         mock_record.delete.assert_called_once()
 
-    @patch.multiple("autoreduce_qp.scripts.manual_operations.manual_remove.ManualRemove",
+    @patch.multiple("autoreduce_scripts.manual_operations.manual_remove.ManualRemove",
                     delete_reduction_location=DEFAULT,
                     delete_data_location=DEFAULT,
                     delete_variables=DEFAULT,
@@ -401,11 +401,11 @@ class TestManualRemove(TestCase):
         Test: The correct query is run
         When: Calling find_variables_of_reduction
         """
-        with patch("autoreduce_qp.scripts.manual_operations.manual_remove.RunVariable") as run_variable:
+        with patch("autoreduce_scripts.manual_operations.manual_remove.RunVariable") as run_variable:
             self.manual_remove.find_variables_of_reduction(123)
             run_variable.objects.filter.assert_called_once_with(reduction_run_id=123)
 
-    @patch("autoreduce_qp.scripts.manual_operations.manual_remove.ManualRemove.find_variables_of_reduction")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.find_variables_of_reduction")
     def test_delete_variables(self, mock_find_vars):
         """
         Test: ALL variable records are successfully deleted from the database
@@ -413,7 +413,7 @@ class TestManualRemove(TestCase):
         """
         mock_run_variables = [self._run_variable(variable_ptr_id=3), self._run_variable(variable_ptr_id=5)]
         mock_find_vars.return_value = mock_run_variables
-        with patch("autoreduce_qp.scripts.manual_operations.manual_remove.RunVariable") as run_variable:
+        with patch("autoreduce_scripts.manual_operations.manual_remove.RunVariable") as run_variable:
             self.manual_remove.delete_variables(20)
             mock_find_vars.assert_called_once_with(20)
             run_variable.objects.filter.assert_has_calls(
