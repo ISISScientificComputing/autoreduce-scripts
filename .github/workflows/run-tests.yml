@@ -25,15 +25,11 @@ jobs:
 
       - uses: ISISScientificComputing/autoreduce-actions/build@master
         with:
-          package_name: autoreduce_qp
+          package_name: autoreduce_scripts
 
       - name: Run unit tests
         run: >-
-          pytest --ignore=autoreduce_qp/systemtests --cov=autoreduce_qp --cov-report=xml autoreduce_qp
-
-      - name: Run system tests
-        run: |
-          pytest autoreduce_qp/systemtests --cov-append
+          pytest --cov=autoreduce_scripts --cov-report=xml autoreduce_scripts
 
       - uses: codecov/codecov-action@v1
         with:
@@ -90,9 +86,9 @@ jobs:
 
       - uses: ISISScientificComputing/autoreduce-actions/build@master
         with:
-          package_name: autoreduce_qp
+          package_name: autoreduce_scripts
 
       - uses: ISISScientificComputing/autoreduce-actions/code_inspection@master
         with:
-          package_name: autoreduce_qp
+          package_name: autoreduce_scripts
 
