@@ -82,14 +82,12 @@ class TestManualSubmission(TestCase):
         mock_from_database.assert_called_once()
         mock_from_icat.assert_called_once()
 
-    def test_get_from_database_no_run(self, mock_get_run):
+    def test_get_from_database_no_run(self):
         """
         Test: None is returned
         When: get_location_and_rb_from_database can't find a ReductionRun record
         """
-        mock_get_run.return_value = None
         self.assertIsNone(ms.get_location_and_rb_from_database('GEM', 123))
-        mock_get_run.assert_not_called()
 
     def test_get_from_database(self):
         """
