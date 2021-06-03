@@ -18,7 +18,12 @@ setup(
         "GitPython==3.1.14"  # for backup_reduction_scripts.py
     ],
     packages=find_packages(),
-    #   entry_points={"console_scripts": ["autoreduce-qp-start = autoreduce_qp.queue_processor.queue_listener:main"]},
+    entry_points={
+        "console_scripts": [
+            "autoreduce-manual-submission = autoreduce_scripts.manual_operations.manual_submission:fire_entrypoint",
+            "autoreduce-manual-remove = autoreduce_scripts.manual_operations.manual_remove:fire_entrypoint"
+        ]
+    },
     classifiers=[
         "Programming Language :: Python :: 3 :: Only",
     ])

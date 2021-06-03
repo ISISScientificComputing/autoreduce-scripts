@@ -208,5 +208,12 @@ def main(instrument, first_run, last_run=None):
             print("Unable to find rb number and location for {}{}".format(instrument, run))
 
 
+def fire_entrypoint():
+    """
+    Entrypoint into the Fire CLI interface. Used via setup.py console_scripts
+    """
+    fire.Fire(main)  # pragma: no cover
+
+
 if __name__ == "__main__":
     fire.Fire(main)  # pragma: no cover

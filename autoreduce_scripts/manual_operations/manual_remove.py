@@ -8,6 +8,13 @@
 Functionality to remove a reduction run from the database
 """
 from __future__ import print_function
+import django
+from django.conf import settings
+from autoreduce_scripts.autoreduce_django.settings import DATABASES, INSTALLED_APPS
+
+if not settings.configured:
+    settings.configure(DATABASES=DATABASES, INSTALLED_APPS=INSTALLED_APPS)
+    django.setup()
 
 import sys
 
@@ -241,6 +248,13 @@ def main(instrument: str, first_run: int, last_run: int = None, delete_all_versi
 
     for run in run_numbers:
         remove(instrument, run, delete_all_versions)
+
+
+def fire_entrypoint():
+    """
+    Entrypoint into the Fire CLI interface. Used via setup.py console_scripts
+    """
+    fire.Fire(main)  # pragma: no cover
 
 
 if __name__ == "__main__":  # pragma: no cover
