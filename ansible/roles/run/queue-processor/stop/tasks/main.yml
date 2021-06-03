@@ -1,7 +1,0 @@
----
-
-- name: Stop the Singularity instance
-  become: yes
-  become_user: "{{ autoreduction_user }}"
-  command: singularity instance stop -t 60 -s SIGTERM qp
-  ignore_errors: yes
