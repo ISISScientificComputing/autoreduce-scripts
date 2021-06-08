@@ -40,3 +40,4 @@ class TimeSinceLastRunMatchingLastrunsTest(LiveServerTestCase):
         """
         main()
         mock_logging.getLogger.return_value.warning.assert_not_called()
+        assert mock_logging.getLogger.return_value.info.call_count == 2

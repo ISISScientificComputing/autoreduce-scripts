@@ -72,9 +72,10 @@ class TimeSinceLastRunTest(LiveServerTestCase):
         Only one of them should cause a log message.
         """
         last_instr = Instrument.objects.last()
-        last_instr.is_active = False
+        last_instr.is_paused = True
         last_instr.save()
         main()
+        mock_logging.getLogger.return_value.info.assert_called_once()
         mock_logging.getLogger.return_value.warning.assert_called_once()
 
     @patch("autoreduce_scripts.checks.daily.time_since_last_run.logging")
