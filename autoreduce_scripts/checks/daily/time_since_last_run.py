@@ -20,6 +20,8 @@ LOG_FILE = os.path.join(CONFIG_ROOT, "logs", "time-since-last-run.log")
 BASE_INSTRUMENT_LASTRUNS_TXT_DIR = os.path.join(ARCHIVE_ROOT, "NDX{}", "Instrument", "logs")
 # pylint:disable=no-member
 
+LOG_LEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
+
 
 def setup_logger():
     """
@@ -29,7 +31,7 @@ def setup_logger():
                         datefmt="%d/%b/%Y %H:%M:%S",
                         handlers=[logging.FileHandler(LOG_FILE),
                                   logging.StreamHandler(sys.stdout)],
-                        level=logging.INFO)
+                        level=LOG_LEVEL)
     logger = logging.getLogger(os.path.basename(__file__))
     return logger
 
@@ -47,7 +49,7 @@ def main():
     instruments = Instrument.objects.all()
     for instrument in instruments:
         if instrument.is_paused:  # skip paused instruments, we are not processing runs for them
-            logger.info("Instrument %s is paused")
+            logger.debug("Instrument %s is paused")
             continue
         last_runs_txt_file = Path(BASE_INSTRUMENT_LASTRUNS_TXT_DIR.format(instrument), "lastrun.txt")
         last_runs_txt = last_runs_txt_file.read_text()
@@ -57,7 +59,9 @@ def main():
             if str(last_run.run_number) not in last_runs_txt:
                 logger.warning("Instrument %s has not had runs in over 1 day", instrument)
             else:
-                logger.info("Last run for instrument %s matches lastrun.txt")
+                logger.debug("Last run for instrument %s matches lastrun.txt")
+        else:
+            logger.debug("All runs OK for instrument %s", instrument)
 
 
 if __name__ == "__main__":
