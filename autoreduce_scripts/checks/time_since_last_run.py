@@ -43,7 +43,8 @@ def main():
         if not instrument.is_active:  # skip paused instruments, we are not processing runs for them
             continue
 
-        if timezone.now() - instrument.reduction_runs.last().finished > timedelta(1):
+        last_run = instrument.reduction_runs.last()
+        if last_run and timezone.now() - last_run.created > timedelta(1):
             logger.warning("Instrument %s has not had runs in over 1 day", instrument)
 
 

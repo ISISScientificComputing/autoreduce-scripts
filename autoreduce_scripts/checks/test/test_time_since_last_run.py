@@ -27,7 +27,7 @@ class TimeSinceLastRunMultipleTest(StaticLiveServerTestCase):
         Only one of them should cause a log message.
         """
         rr2 = ReductionRun.objects.get(pk=2)
-        rr2.finished = timezone.now()
+        rr2.created = timezone.now()
         rr2.save()
         main()
         mock_logging.getLogger.return_value.warning.assert_called_once()
@@ -39,7 +39,7 @@ class TimeSinceLastRunMultipleTest(StaticLiveServerTestCase):
         Only one of them should cause a log message.
         """
         for redrun in ReductionRun.objects.all():
-            redrun.finished = timezone.now()
+            redrun.created = timezone.now()
             redrun.save()
         main()
         mock_logging.getLogger.return_value.warning.assert_not_called()
@@ -53,5 +53,16 @@ class TimeSinceLastRunMultipleTest(StaticLiveServerTestCase):
         last_instr = Instrument.objects.last()
         last_instr.is_active = False
         last_instr.save()
+        main()
+        mock_logging.getLogger.return_value.warning.assert_called_once()
+
+    @patch("autoreduce_scripts.checks.time_since_last_run.logging")
+    def test_instrument_without_runs(self, mock_logging):
+        """
+        Test when one instrument hasn't had runs, but one has.
+        Only one of them should cause a log message.
+        """
+        last_instr = Instrument.objects.last()
+        last_instr.reduction_runs.all().delete()
         main()
         mock_logging.getLogger.return_value.warning.assert_called_once()
