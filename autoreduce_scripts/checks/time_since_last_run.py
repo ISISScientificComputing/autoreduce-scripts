@@ -16,6 +16,8 @@ from autoreduce_db.instrument.models import Instrument  # pylint:disable=wrong-i
 
 LOG_FILE = os.path.join(CONFIG_ROOT, "logs", "time-since-last-run.log")
 
+# pylint:disable=no-member
+
 
 def setup_logger():
     """
