@@ -75,7 +75,7 @@ class TimeSinceLastRunTest(LiveServerTestCase):
         last_instr.is_paused = True
         last_instr.save()
         main()
-        mock_logging.getLogger.return_value.debug.assert_called_once()
+        mock_logging.getLogger.return_value.info.assert_called_once()
         mock_logging.getLogger.return_value.warning.assert_called_once()
 
     @patch("autoreduce_scripts.checks.daily.time_since_last_run.logging")
