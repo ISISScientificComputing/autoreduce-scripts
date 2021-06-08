@@ -45,7 +45,8 @@ def main():
     logger = setup_logger()
     instruments = Instrument.objects.all()
     for instrument in instruments:
-        if not instrument.is_active:  # skip paused instruments, we are not processing runs for them
+        if instrument.is_paused:  # skip paused instruments, we are not processing runs for them
+            logger.info("Instrument %s is paused")
             continue
         last_runs_txt_file = Path(BASE_INSTRUMENT_LASTRUNS_TXT_DIR.format(instrument), "lastrun.txt")
         last_runs_txt = last_runs_txt_file.read_text()
@@ -54,6 +55,8 @@ def main():
         if last_run and timezone.now() - last_run.created > timedelta(1):
             if str(last_run.run_number) not in last_runs_txt:
                 logger.warning("Instrument %s has not had runs in over 1 day", instrument)
+            else:
+                logger.info("Last run for instrument %s matches lastrun.txt")
 
 
 if __name__ == "__main__":
