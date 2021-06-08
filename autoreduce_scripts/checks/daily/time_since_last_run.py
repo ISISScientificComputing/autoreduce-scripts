@@ -27,7 +27,7 @@ def setup_logger():
                         datefmt="%d/%b/%Y %H:%M:%S",
                         handlers=[logging.FileHandler(LOG_FILE),
                                   logging.StreamHandler(sys.stdout)])
-    logger = logging.getLogger(__file__)
+    logger = logging.getLogger(os.path.basename(__file__))
     return logger
 
 
@@ -39,6 +39,7 @@ def main():
 
     The log file should then be sent to Kibana where we have alerts.
     """
+    setup_django()
     logger = setup_logger()
     instruments = Instrument.objects.all()
     for instrument in instruments:
@@ -51,5 +52,4 @@ def main():
 
 
 if __name__ == "__main__":
-    setup_django()
     main()
