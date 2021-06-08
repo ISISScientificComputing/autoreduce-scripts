@@ -4,7 +4,7 @@ from autoreduce_db.reduction_viewer.models import Instrument, ReductionRun
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.utils import timezone
 
-from autoreduce_scripts.checks.time_since_last_run import main
+from autoreduce_scripts.checks.daily.time_since_last_run import main
 
 # pylint:disable=no-member,no-self-use
 
