@@ -12,7 +12,7 @@ from autoreduce_scripts.checks.daily.time_since_last_run import main
 class TimeSinceLastRunMultipleTest(StaticLiveServerTestCase):
     fixtures = ["status_fixture", "multiple_instruments_and_runs"]
 
-    @patch("autoreduce_scripts.checks.time_since_last_run.logging")
+    @patch("autoreduce_scripts.checks.daily.time_since_last_run.logging")
     def test_with_multiple_instruments(self, mock_logging):
         """
         Test when there are multiple instruments that haven't had run in a day.
@@ -20,7 +20,7 @@ class TimeSinceLastRunMultipleTest(StaticLiveServerTestCase):
         main()
         assert mock_logging.getLogger.return_value.warning.call_count == 2
 
-    @patch("autoreduce_scripts.checks.time_since_last_run.logging")
+    @patch("autoreduce_scripts.checks.daily.time_since_last_run.logging")
     def test_only_one_doesnt_have_runs(self, mock_logging):
         """
         Test when one instrument hasn't had runs, but one has.
@@ -32,7 +32,7 @@ class TimeSinceLastRunMultipleTest(StaticLiveServerTestCase):
         main()
         mock_logging.getLogger.return_value.warning.assert_called_once()
 
-    @patch("autoreduce_scripts.checks.time_since_last_run.logging")
+    @patch("autoreduce_scripts.checks.daily.time_since_last_run.logging")
     def test_all_have_runs(self, mock_logging):
         """
         Test when one instrument hasn't had runs, but one has.
@@ -44,7 +44,7 @@ class TimeSinceLastRunMultipleTest(StaticLiveServerTestCase):
         main()
         mock_logging.getLogger.return_value.warning.assert_not_called()
 
-    @patch("autoreduce_scripts.checks.time_since_last_run.logging")
+    @patch("autoreduce_scripts.checks.daily.time_since_last_run.logging")
     def test_paused_instruments_not_reported(self, mock_logging):
         """
         Test when one instrument hasn't had runs, but one has.
@@ -56,7 +56,7 @@ class TimeSinceLastRunMultipleTest(StaticLiveServerTestCase):
         main()
         mock_logging.getLogger.return_value.warning.assert_called_once()
 
-    @patch("autoreduce_scripts.checks.time_since_last_run.logging")
+    @patch("autoreduce_scripts.checks.daily.time_since_last_run.logging")
     def test_instrument_without_runs(self, mock_logging):
         """
         Test when one instrument hasn't had runs, but one has.
