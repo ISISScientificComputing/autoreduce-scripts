@@ -9,19 +9,20 @@ from setuptools import setup, find_packages
 
 setup(
     name="autoreduce_scripts",
-    version="22.0.0.dev1",
+    version="22.0.0.dev0",
     description="ISIS Autoreduce helper scripts",
     author="ISIS Autoreduction Team",
     url="https://github.com/ISISScientificComputing/autoreduce-scripts/",
     install_requires=[
-        "autoreduce_qp",
+        "autoreduce_qp==22.0.0.dev0",  # only test_manual_remove has deps on autoreduce_qp
         "GitPython==3.1.14"  # for backup_reduction_scripts.py
     ],
     packages=find_packages(),
     entry_points={
         "console_scripts": [
             "autoreduce-manual-submission = autoreduce_scripts.manual_operations.manual_submission:fire_entrypoint",
-            "autoreduce-manual-remove = autoreduce_scripts.manual_operations.manual_remove:fire_entrypoint"
+            "autoreduce-manual-remove = autoreduce_scripts.manual_operations.manual_remove:fire_entrypoint",
+            "autoreduce-check-time-since-last-run = autoreduce_scripts.checks.daily.time_since_last_run:main"
         ]
     },
     classifiers=[

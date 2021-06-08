@@ -21,7 +21,7 @@ from autoreduce_utils.clients.queue_client import QueueClient
 from autoreduce_utils.clients.tools.isisicat_prefix_mapping import get_icat_instrument_prefix
 from autoreduce_utils.message.message import Message
 
-from autoreduce_qp.scripts.manual_operations.util import get_run_range
+from autoreduce_scripts.manual_operations.util import get_run_range
 
 
 def submit_run(active_mq_client, rb_number, instrument, data_file_location, run_number):
