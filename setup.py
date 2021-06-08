@@ -15,7 +15,7 @@ setup(
     url="https://github.com/ISISScientificComputing/autoreduce-scripts/",
     install_requires=[
         "autoreduce_qp==22.0.0.dev0",  # only test_manual_remove has deps on autoreduce_qp
-        "GitPython==3.1.14"  # for backup_reduction_scripts.py
+        "GitPython==3.1.17"  # for backup_reduction_scripts.py
     ],
     packages=find_packages(),
     entry_points={
