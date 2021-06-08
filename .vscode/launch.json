@@ -26,5 +26,27 @@
             },
             "justMyCode": false
         },
+        {
+            "name": "Pytest - coverage",
+            "type": "python",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "--cov-report",
+                "html",
+                "--cov=${workspaceFolder}/autoreduce_scripts/checks",
+                "-v",
+                "${fileDirname}"
+            ],
+            "presentation": {
+                "hidden": false,
+                "group": "autoreduce-scripts",
+            },
+            "env": {
+                "DISPLAY": ":1",
+                "RUNNING_VIA_PYTEST": "true",
+                "SELENIUM_REMOTE": "1"
+            }
+        },
     ]
 }

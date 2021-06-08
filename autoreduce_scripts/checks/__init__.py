@@ -16,7 +16,7 @@ def setup_django():
     """
 
     if not settings.configured:
-        settings.configure(DATABASES=DATABASES, INSTALLED_APPS=INSTALLED_APPS)
+        settings.configure(DATABASES=DATABASES, INSTALLED_APPS=INSTALLED_APPS, USE_TZ=True)
         django.setup()
 
 

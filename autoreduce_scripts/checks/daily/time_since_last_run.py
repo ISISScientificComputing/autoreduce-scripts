@@ -7,8 +7,10 @@ import logging
 import os
 import sys
 from datetime import timedelta
+from pathlib import Path
 
 from autoreduce_db.autoreduce_django.settings import CONFIG_ROOT
+from autoreduce_qp.queue_processor.settings import ARCHIVE_ROOT
 from django.utils import timezone
 
 from autoreduce_scripts.checks import setup_django  # setup_django first or importing the model fails
@@ -45,10 +47,13 @@ def main():
     for instrument in instruments:
         if not instrument.is_active:  # skip paused instruments, we are not processing runs for them
             continue
+        last_runs_txt_file = Path(ARCHIVE_ROOT, f"NDX{instrument}", "logs", "lastrun.txt")
+        last_runs_txt = last_runs_txt_file.read_text()
 
         last_run = instrument.reduction_runs.last()
         if last_run and timezone.now() - last_run.created > timedelta(1):
-            logger.warning("Instrument %s has not had runs in over 1 day", instrument)
+            if str(last_run.run_number) not in last_runs_txt:
+                logger.warning("Instrument %s has not had runs in over 1 day", instrument)
 
 
 if __name__ == "__main__":
