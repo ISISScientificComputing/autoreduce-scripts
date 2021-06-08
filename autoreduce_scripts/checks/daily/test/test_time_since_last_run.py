@@ -1,14 +1,13 @@
-from autoreduce_scripts.checks import setup_django
 from pathlib import Path
 from unittest.mock import patch
 import shutil
 
-from autoreduce_db.reduction_viewer.models import Instrument, ReductionRun
-from autoreduce_qp.queue_processor.settings import ARCHIVE_ROOT
 from django.contrib.staticfiles.testing import LiveServerTestCase
 from django.utils import timezone
 
-from autoreduce_scripts.checks.daily.time_since_last_run import main
+from autoreduce_scripts.checks import setup_django  # pylint:disable=wrong-import-order,ungrouped-imports
+from autoreduce_db.reduction_viewer.models import Instrument, ReductionRun
+from autoreduce_scripts.checks.daily.time_since_last_run import BASE_INSTRUMENT_LASTRUNS_TXT_DIR, main
 
 # pylint:disable=no-member,no-self-use
 
@@ -24,14 +23,14 @@ class TimeSinceLastRunTest(LiveServerTestCase):
     def setUp(self) -> None:
         self.instruments = Instrument.objects.all()
         for instrument in self.instruments:
-            log_path = Path(ARCHIVE_ROOT, f"NDX{instrument}", "logs")
+            log_path = Path(BASE_INSTRUMENT_LASTRUNS_TXT_DIR.format(instrument))
             log_path.mkdir(parents=True, exist_ok=True)
             last_runs_txt = log_path / "lastrun.txt"
             last_runs_txt.write_text(f"{instrument} 44444 0")
 
     def tearDown(self) -> None:
         for instrument in self.instruments:
-            log_path = Path(ARCHIVE_ROOT, f"NDX{instrument}", "logs")
+            log_path = Path(BASE_INSTRUMENT_LASTRUNS_TXT_DIR.format(instrument))
             shutil.rmtree(log_path)
 
     @patch("autoreduce_scripts.checks.daily.time_since_last_run.logging")

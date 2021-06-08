@@ -17,7 +17,7 @@ from autoreduce_scripts.checks import setup_django  # setup_django first or impo
 from autoreduce_db.instrument.models import Instrument  # pylint:disable=wrong-import-order,ungrouped-imports
 
 LOG_FILE = os.path.join(CONFIG_ROOT, "logs", "time-since-last-run.log")
-
+BASE_INSTRUMENT_LASTRUNS_TXT_DIR = os.path.join(ARCHIVE_ROOT, "NDX{}", "Instrument", "logs")
 # pylint:disable=no-member
 
 
@@ -47,7 +47,7 @@ def main():
     for instrument in instruments:
         if not instrument.is_active:  # skip paused instruments, we are not processing runs for them
             continue
-        last_runs_txt_file = Path(ARCHIVE_ROOT, f"NDX{instrument}", "logs", "lastrun.txt")
+        last_runs_txt_file = Path(BASE_INSTRUMENT_LASTRUNS_TXT_DIR.format(instrument), "lastrun.txt")
         last_runs_txt = last_runs_txt_file.read_text()
 
         last_run = instrument.reduction_runs.last()

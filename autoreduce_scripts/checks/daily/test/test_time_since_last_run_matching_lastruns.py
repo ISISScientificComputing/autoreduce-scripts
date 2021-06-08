@@ -1,14 +1,11 @@
-from autoreduce_scripts.checks import setup_django
 from pathlib import Path
 from unittest.mock import patch
 import shutil
-
-from autoreduce_db.reduction_viewer.models import Instrument, ReductionRun
-from autoreduce_qp.queue_processor.settings import ARCHIVE_ROOT
 from django.contrib.staticfiles.testing import LiveServerTestCase
-from django.utils import timezone
 
-from autoreduce_scripts.checks.daily.time_since_last_run import main
+from autoreduce_scripts.checks import setup_django  # pylint:disable=wrong-import-order,ungrouped-imports
+from autoreduce_db.reduction_viewer.models import Instrument
+from autoreduce_scripts.checks.daily.time_since_last_run import BASE_INSTRUMENT_LASTRUNS_TXT_DIR, main
 
 # pylint:disable=no-member,no-self-use
 
@@ -24,14 +21,14 @@ class TimeSinceLastRunMatchingLastrunsTest(LiveServerTestCase):
     def setUp(self) -> None:
         self.instruments = Instrument.objects.all()
         for instrument in self.instruments:
-            log_path = Path(ARCHIVE_ROOT, f"NDX{instrument}", "logs")
+            log_path = Path(BASE_INSTRUMENT_LASTRUNS_TXT_DIR.format(instrument))
             log_path.mkdir(parents=True, exist_ok=True)
             last_runs_txt = log_path / "lastrun.txt"
             last_runs_txt.write_text(f"{instrument} {instrument.reduction_runs.last().run_number} 0")
 
     def tearDown(self) -> None:
         for instrument in self.instruments:
-            log_path = Path(ARCHIVE_ROOT, f"NDX{instrument}", "logs")
+            log_path = Path(BASE_INSTRUMENT_LASTRUNS_TXT_DIR.format(instrument))
             shutil.rmtree(log_path)
 
     @patch("autoreduce_scripts.checks.daily.time_since_last_run.logging")
@@ -43,50 +40,3 @@ class TimeSinceLastRunMatchingLastrunsTest(LiveServerTestCase):
         """
         main()
         mock_logging.getLogger.return_value.warning.assert_not_called()
-
-    # @patch("autoreduce_scripts.checks.daily.time_since_last_run.logging")
-    # def test_only_one_doesnt_have_runs(self, mock_logging):
-    #     """
-    #     Test when one instrument hasn't had runs, but one has.
-    #     Only one of them should cause a log message.
-    #     """
-    #     rr2 = ReductionRun.objects.get(pk=2)
-    #     rr2.created = timezone.now()
-    #     rr2.save()
-    #     main()
-    #     mock_logging.getLogger.return_value.warning.assert_called_once()
-
-    # @patch("autoreduce_scripts.checks.daily.time_since_last_run.logging")
-    # def test_all_have_runs(self, mock_logging):
-    #     """
-    #     Test when one instrument hasn't had runs, but one has.
-    #     Only one of them should cause a log message.
-    #     """
-    #     for redrun in ReductionRun.objects.all():
-    #         redrun.created = timezone.now()
-    #         redrun.save()
-    #     main()
-    #     mock_logging.getLogger.return_value.warning.assert_not_called()
-
-    # @patch("autoreduce_scripts.checks.daily.time_since_last_run.logging")
-    # def test_paused_instruments_not_reported(self, mock_logging):
-    #     """
-    #     Test when one instrument hasn't had runs, but one has.
-    #     Only one of them should cause a log message.
-    #     """
-    #     last_instr = Instrument.objects.last()
-    #     last_instr.is_active = False
-    #     last_instr.save()
-    #     main()
-    #     mock_logging.getLogger.return_value.warning.assert_called_once()
-
-    # @patch("autoreduce_scripts.checks.daily.time_since_last_run.logging")
-    # def test_instrument_without_runs(self, mock_logging):
-    #     """
-    #     Test when one instrument hasn't had runs, but one has.
-    #     Only one of them should cause a log message.
-    #     """
-    #     last_instr = Instrument.objects.last()
-    #     last_instr.reduction_runs.all().delete()
-    #     main()
-    #     mock_logging.getLogger.return_value.warning.assert_called_once()
