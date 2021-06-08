@@ -1,16 +1,38 @@
+from autoreduce_scripts.checks import setup_django
+from pathlib import Path
 from unittest.mock import patch
+import shutil
 
 from autoreduce_db.reduction_viewer.models import Instrument, ReductionRun
-from django.contrib.staticfiles.testing import StaticLiveServerTestCase
+from autoreduce_qp.queue_processor.settings import ARCHIVE_ROOT
+from django.contrib.staticfiles.testing import LiveServerTestCase
 from django.utils import timezone
 
 from autoreduce_scripts.checks.daily.time_since_last_run import main
 
 # pylint:disable=no-member,no-self-use
 
+setup_django()
 
-class TimeSinceLastRunMultipleTest(StaticLiveServerTestCase):
+
+class TimeSinceLastRunTest(LiveServerTestCase):
+    """
+    Test the behaviour when none of the instruments runs match the number in lastruns.txt
+    """
     fixtures = ["status_fixture", "multiple_instruments_and_runs"]
+
+    def setUp(self) -> None:
+        self.instruments = Instrument.objects.all()
+        for instrument in self.instruments:
+            log_path = Path(ARCHIVE_ROOT, f"NDX{instrument}", "logs")
+            log_path.mkdir(parents=True, exist_ok=True)
+            last_runs_txt = log_path / "lastrun.txt"
+            last_runs_txt.write_text(f"{instrument} 44444 0")
+
+    def tearDown(self) -> None:
+        for instrument in self.instruments:
+            log_path = Path(ARCHIVE_ROOT, f"NDX{instrument}", "logs")
+            shutil.rmtree(log_path)
 
     @patch("autoreduce_scripts.checks.daily.time_since_last_run.logging")
     def test_with_multiple_instruments(self, mock_logging):
