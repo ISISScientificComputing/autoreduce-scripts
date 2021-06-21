@@ -9,12 +9,14 @@ Test cases for the manual job submission script
 """
 import builtins
 from unittest.mock import DEFAULT, Mock, call, patch
+import socket
+from django.utils import timezone
 
+from autoreduce_db.instrument.models import ReductionRun
 from autoreduce_db.reduction_viewer.models import Experiment, Instrument, Status
 from django.db import IntegrityError
 from django.test import TestCase
 
-from autoreduce_qp.model.database.records import create_reduction_run_record
 from autoreduce_qp.queue_processor.tests.test_handle_message import FakeMessage
 from autoreduce_scripts.manual_operations.manual_remove import (ManualRemove, main, remove, user_input_check)
 
@@ -27,6 +29,30 @@ def create_experiment_and_instrument():
     experiment, _ = Experiment.objects.get_or_create(reference_number=1231231)
     instrument, _ = Instrument.objects.get_or_create(name="ARMI", is_active=1, is_paused=0)
     return experiment, instrument
+
+
+def create_reduction_run_record(experiment, instrument, message, run_version, script_text, status):
+    """
+    Creates an ORM record for the given reduction run and returns
+    this record without saving it to the DB
+    """
+
+    time_now = timezone.now()
+    reduction_run = ReductionRun(run_number=message.run_number,
+                                 run_version=run_version,
+                                 run_description=message.description,
+                                 hidden_in_failviewer=0,
+                                 admin_log='',
+                                 reduction_log='',
+                                 created=time_now,
+                                 last_updated=time_now,
+                                 experiment=experiment,
+                                 instrument=instrument,
+                                 status_id=status.id,
+                                 script=script_text,
+                                 started_by=message.started_by,
+                                 reduction_host=socket.getfqdn())
+    return reduction_run
 
 
 def make_test_run(experiment, instrument, run_version: str):
