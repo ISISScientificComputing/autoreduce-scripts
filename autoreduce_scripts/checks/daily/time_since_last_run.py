@@ -19,8 +19,6 @@ from autoreduce_db.instrument.models import Instrument  # pylint:disable=wrong-i
 
 BASE_INSTRUMENT_LASTRUNS_TXT_DIR = os.path.join(ARCHIVE_ROOT, "NDX{}", "Instrument", "logs")
 
-logger = logging.getLogger(os.path.basename(__file__))
-
 
 def main():
     """
@@ -31,6 +29,7 @@ def main():
     The log file should then be sent to Kibana where we have alerts.
     """
     setup_django()
+    logger = logging.getLogger(os.path.basename(__file__))
     instruments = Instrument.objects.all()
 
     for instrument in instruments:
