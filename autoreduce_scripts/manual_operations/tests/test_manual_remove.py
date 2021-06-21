@@ -8,19 +8,25 @@
 Test cases for the manual job submission script
 """
 import builtins
-from unittest.mock import DEFAULT, Mock, call, patch
 import socket
-from django.utils import timezone
+from unittest.mock import DEFAULT, Mock, call, patch
 
 from autoreduce_db.instrument.models import ReductionRun
 from autoreduce_db.reduction_viewer.models import Experiment, Instrument, Status
 from django.db import IntegrityError
 from django.test import TestCase
+from django.utils import timezone
 
-from autoreduce_qp.queue_processor.tests.test_handle_message import FakeMessage
 from autoreduce_scripts.manual_operations.manual_remove import (ManualRemove, main, remove, user_input_check)
 
 # pylint:disable=no-member
+
+
+class FakeMessage:
+    started_by = 0
+    run_number = 1234567
+    message = "I am a message"
+    description = "This is a fake description"
 
 
 def create_experiment_and_instrument():
