@@ -9,7 +9,6 @@
             "type": "python",
             "request": "launch",
             "module": "pytest",
-            "cwd": "${workspaceFolder}",
             "args": [
                 "-v",
                 "${file}"
@@ -30,11 +29,12 @@
             "name": "Pytest - coverage",
             "type": "python",
             "request": "launch",
+            "cwd": "${fileDirname}",
             "module": "pytest",
             "args": [
                 "--cov-report",
                 "html",
-                "--cov=${workspaceFolder}/autoreduce_scripts/checks",
+                "--cov=${fileDirname}/../",
                 "-v",
                 "${fileDirname}"
             ],

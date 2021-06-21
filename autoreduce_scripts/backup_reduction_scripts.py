@@ -28,14 +28,14 @@ import os
 import sys
 import argparse
 import datetime
-import logging
 import shutil
 import traceback
 from pathlib import Path
 
 from git import Git, exc
 
-from autoreduce_qp.queue_processor.settings import PROJECT_ROOT
+# this calls the configuration of the logger which is done in the settings module
+from autoreduce_utils.settings import logging
 
 ISIS_MOUNT_PATH = Path("/isis")
 AUTOREDUCTION_PATH = Path("user/scripts/autoreduction")
@@ -44,9 +44,7 @@ REDUCE_FILES_TO_SAVE = ["reduce.py", "reduce_vars.py"]
 # STORAGE_DIR is the git repository dir that has been configured to point to the correct remote
 STORAGE_DIR = Path("~/autoreduction_scripts").expanduser().absolute()
 
-logging.basicConfig(filename=str(Path(PROJECT_ROOT, 'logs', 'backup_reduction_scripts.log')), level=logging.INFO)
 log = logging.getLogger(__file__)
-log.addHandler(logging.StreamHandler())
 
 
 def check_if_git_directory(path: Path):
