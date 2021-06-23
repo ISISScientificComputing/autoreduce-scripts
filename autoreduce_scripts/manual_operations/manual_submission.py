@@ -10,6 +10,7 @@ A module for creating and submitting manual submissions to autoreduction
 from __future__ import print_function
 
 import sys
+from attr import attr
 
 import fire
 
@@ -44,7 +45,8 @@ def submit_run(active_mq_client, rb_number, instrument, data_file_location, run_
                       facility="ISIS",
                       started_by=-1)
     active_mq_client.send('/queue/DataReady', message, priority=1)
-    print("Submitted run: \r\n" + message.serialize(indent=1))
+    print("Submitted run: \r\n", message.serialize(indent=1))
+    return message.to_dict()
 
 
 def get_location_and_rb_from_database(instrument, run_number):
@@ -200,12 +202,16 @@ def main(instrument, first_run, last_run=None):
 
     activemq_client = login_queue()
 
+    submitted_runs = []
+
     for run in run_numbers:
         location, rb_num = get_location_and_rb(icat_client, instrument, run, "nxs")
         if location and rb_num is not None:
-            submit_run(activemq_client, rb_num, instrument, location, run)
+            submitted_runs.append(submit_run(activemq_client, rb_num, instrument, location, run))
         else:
             print("Unable to find rb number and location for {}{}".format(instrument, run))
+
+    return submitted_runs
 
 
 def fire_entrypoint():
