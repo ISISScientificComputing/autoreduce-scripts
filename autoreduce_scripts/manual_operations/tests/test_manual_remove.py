@@ -346,7 +346,9 @@ class TestManualRemove(TestCase):
         Test: The correct control functions are called including handle_input for many runs
         When: The main() function is called
         """
-        main(instrument="GEM", first_run=1, last_run=9)
+        return_value = main(instrument="GEM", first_run=1, last_run=9)
+
+        assert len(return_value) == 9
         mock_get_run_range.assert_called_with(1, last_run=9)
         mock_find.assert_called()
         mock_process.assert_called()
