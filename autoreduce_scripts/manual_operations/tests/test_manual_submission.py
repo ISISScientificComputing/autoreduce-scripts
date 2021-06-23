@@ -254,9 +254,10 @@ class TestManualSubmission(TestCase):
         mock_get_loc.return_value = ('test/file/path', 2222)
 
         # Call functionality
-        ms.main(instrument='TEST', first_run=1111)
+        return_value = ms.main(instrument='TEST', first_run=1111)
 
         # Assert
+        assert len(return_value) == 1
         mock_run_range.assert_called_with(1111, last_run=None)
         mock_icat.assert_called_once()
         mock_queue.assert_called_once()
