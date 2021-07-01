@@ -10,8 +10,12 @@ A module for creating and submitting manual submissions to autoreduction
 from __future__ import print_function
 
 import sys
+from typing import Tuple
 
 import fire
+import h5py
+import logging
+import traceback
 
 from autoreduce_db.reduction_viewer.models import ReductionRun
 
@@ -34,8 +38,7 @@ def submit_run(active_mq_client, rb_number, instrument, data_file_location, run_
     :param run_number: run number fo the experiment
     """
     if active_mq_client is None:
-        print("ActiveMQ not connected, cannot submit runs")
-        return
+        raise RuntimeError("ActiveMQ not connected, cannot submit runs")
 
     message = Message(rb_number=rb_number,
                       instrument=instrument,
@@ -78,14 +81,13 @@ def icat_datafile_query(icat_client, file_name):
     :raises SystemExit: If icat_client not connected
     """
     if icat_client is None:
-        print("ICAT not connected")  # pragma: no cover
-        sys.exit(1)  # pragma: no cover
+        raise RuntimeError("ICAT not connected")
 
     return icat_client.execute_query("SELECT df FROM Datafile df WHERE df.name = '" + file_name +
                                      "' INCLUDE df.dataset AS ds, ds.investigation")
 
 
-def get_location_and_rb_from_icat(instrument, run_number, file_ext):
+def get_location_and_rb_from_icat(instrument, run_number, file_ext) -> Tuple[str, str]:
     """
     Retrieves a run's data-file location and rb_number from ICAT.
     Attempts first with the default file name, then with prepended zeroes.
@@ -185,6 +187,47 @@ def login_queue():
     return activemq_client
 
 
+def _read_rb_from_datafile(location: str):
+    """
+    Reads the RB number from the location of the datafile
+    """
+    nxs_file = h5py.File(location, mode="r")
+
+    for (_, entry) in nxs_file.items():
+        rb_number = entry.get('experiment_identifier').value[0]
+        if rb_number:
+            return str(rb_number)
+    raise RuntimeError("Could not read RB number from datafile")
+
+
+def categorize_rb_number(location: str, rb_num: str):
+    """
+    Map RB number to a category. If an ICAT calibration RB number is provided,
+    the datafile will be checked to find out the real experiment number.
+
+    This is because ICAT will overwrite the real RB number for calibration runs!
+    """
+    if "CAL" in rb_num:
+        rb_num = _read_rb_from_datafile(location)
+
+    if rb_num[3] == "0":
+        return "direct_access"
+    elif rb_num[3] in ["1", "2"]:
+        return "rapid_access"
+    elif rb_num[3] == "3" and rb_num[4] == "0":
+        return "commissioning"
+    elif rb_num[3] == "3" and rb_num[4] == "5":
+        return "calibration"
+    elif rb_num[3] == "5":
+        return "industrial_access"
+    elif rb_num[3] == "6":
+        return "international_partners"
+    elif rb_num[3] == "9":
+        return "xpess_access"
+    else:
+        return "uncategorized"
+
+
 def main(instrument, first_run, last_run=None):
     """
     Manually submit an instrument run from reduction.
@@ -193,6 +236,7 @@ def main(instrument, first_run, last_run=None):
     :param first_run: (int) The first run to be submitted
     :param last_run: (int) The last run to be submitted
     """
+    logger = logging.getLogger(__file__)
     run_numbers = get_run_range(first_run, last_run=last_run)
 
     instrument = instrument.upper()
@@ -203,10 +247,17 @@ def main(instrument, first_run, last_run=None):
 
     for run in run_numbers:
         location, rb_num = get_location_and_rb(instrument, run, "nxs")
+        try:
+            category = categorize_rb_number(location, rb_num)
+        except RuntimeError:
+            logger.warning("Could not categorize the run due to an invalid RB number. It will be not be submitted.\n%s",
+                           traceback.format_exc())
+            continue
+
         if location and rb_num is not None:
             submitted_runs.append(submit_run(activemq_client, rb_num, instrument, location, run))
         else:
-            print("Unable to find rb number and location for {}{}".format(instrument, run))
+            logger.error("Unable to find RB number and location for %s%s", instrument, run)
 
     return submitted_runs
 
