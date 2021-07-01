@@ -85,7 +85,7 @@ def icat_datafile_query(icat_client, file_name):
                                      "' INCLUDE df.dataset AS ds, ds.investigation")
 
 
-def get_location_and_rb_from_icat(icat_client, instrument, run_number, file_ext):
+def get_location_and_rb_from_icat(instrument, run_number, file_ext):
     """
     Retrieves a run's data-file location and rb_number from ICAT.
     Attempts first with the default file name, then with prepended zeroes.
@@ -96,9 +96,10 @@ def get_location_and_rb_from_icat(icat_client, instrument, run_number, file_ext)
     :return: The data file location and rb_number
     :raises SystemExit: If the given run information cannot return a location and rb_number
     """
+    icat_client = login_icat()
+
     if icat_client is None:
-        print("ICAT not connected")  # pragma: no cover
-        sys.exit(1)  # pragma: no cover
+        raise RuntimeError("Unable to proceed. Unable to connect to ICAT.")
 
     # look for file-name assuming file-name uses prefix instrument name
     icat_instrument_prefix = get_icat_instrument_prefix(instrument)
@@ -127,7 +128,7 @@ def get_location_and_rb_from_icat(icat_client, instrument, run_number, file_ext)
     return datafile[0].location, datafile[0].dataset.investigation.name
 
 
-def get_location_and_rb(icat_client, instrument, run_number, file_ext):
+def get_location_and_rb(instrument, run_number, file_ext):
     """
     Retrieves a run's data-file location and rb_number from the auto-reduction database,
     or ICAT (if it is not in the database)
@@ -150,7 +151,7 @@ def get_location_and_rb(icat_client, instrument, run_number, file_ext):
         return result
     print(f"Cannot find datafile for run_number {run_number} in Auto-reduction database. " f"Will try ICAT...")
 
-    return get_location_and_rb_from_icat(icat_client, instrument, run_number, file_ext)
+    return get_location_and_rb_from_icat(instrument, run_number, file_ext)
 
 
 def login_icat():
@@ -195,16 +196,13 @@ def main(instrument, first_run, last_run=None):
     run_numbers = get_run_range(first_run, last_run=last_run)
 
     instrument = instrument.upper()
-    icat_client = login_icat()
-    if not icat_client:
-        raise RuntimeError("Unable to proceed. Unable to connect to ICAT.")
 
     activemq_client = login_queue()
 
     submitted_runs = []
 
     for run in run_numbers:
-        location, rb_num = get_location_and_rb(icat_client, instrument, run, "nxs")
+        location, rb_num = get_location_and_rb(instrument, run, "nxs")
         if location and rb_num is not None:
             submitted_runs.append(submit_run(activemq_client, rb_num, instrument, location, run))
         else:
