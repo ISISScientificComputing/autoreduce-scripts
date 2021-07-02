@@ -224,12 +224,12 @@ class TestManualSubmission(TestCase):
         Test: That there is an early return
         When: Calling submit_run with active_mq as None
         """
-        self.assertIsNone(
+        with self.assertRaises(RuntimeError):
             ms.submit_run(active_mq_client=None,
                           rb_number=None,
                           instrument=None,
                           data_file_location=None,
-                          run_number=None))
+                          run_number=None)
 
     @patch('autoreduce_scripts.manual_operations.manual_submission.login_queue')
     @patch('autoreduce_scripts.manual_operations.manual_submission.get_location_and_rb',
