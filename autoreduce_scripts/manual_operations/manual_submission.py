@@ -25,6 +25,7 @@ from autoreduce_utils.clients.queue_client import QueueClient
 from autoreduce_utils.clients.tools.isisicat_prefix_mapping import get_icat_instrument_prefix
 from autoreduce_utils.message.message import Message
 
+from autoreduce_scripts.manual_operations.rb_categories import RBCategory
 from autoreduce_scripts.manual_operations.util import get_run_range
 
 
@@ -210,22 +211,25 @@ def categorize_rb_number(location: str, rb_num: str):
     if "CAL" in rb_num:
         rb_num = _read_rb_from_datafile(location)
 
-    if rb_num[3] == "0":
-        return "direct_access"
-    elif rb_num[3] in ["1", "2"]:
-        return "rapid_access"
-    elif rb_num[3] == "3" and rb_num[4] == "0":
-        return "commissioning"
-    elif rb_num[3] == "3" and rb_num[4] == "5":
-        return "calibration"
-    elif rb_num[3] == "5":
-        return "industrial_access"
-    elif rb_num[3] == "6":
-        return "international_partners"
-    elif rb_num[3] == "9":
-        return "xpess_access"
+    if len(rb_num) != 7:
+        return RBCategory.UNCATEGORIZED
+
+    if rb_num[2] == "0":
+        return RBCategory.DIRECT_ACCESS
+    elif rb_num[2] in ["1", "2"]:
+        return RBCategory.RAPID_ACCESS
+    elif rb_num[2] == "3" and rb_num[3] == "0":
+        return RBCategory.COMMISSIONING
+    elif rb_num[2] == "3" and rb_num[3] == "5":
+        return RBCategory.CALIBRATION
+    elif rb_num[2] == "5":
+        return RBCategory.INDUSTRIAL_ACCESS
+    elif rb_num[2] == "6":
+        return RBCategory.INTERNATIONAL_PARTNERS
+    elif rb_num[2] == "9":
+        return RBCategory.XPESS_ACCESS
     else:
-        return "uncategorized"
+        return RBCategory.UNCATEGORIZED
 
 
 def main(instrument, first_run, last_run=None):
@@ -249,6 +253,7 @@ def main(instrument, first_run, last_run=None):
         location, rb_num = get_location_and_rb(instrument, run, "nxs")
         try:
             category = categorize_rb_number(location, rb_num)
+            logger.info("Run is in category %s", category)
         except RuntimeError:
             logger.warning("Could not categorize the run due to an invalid RB number. It will be not be submitted.\n%s",
                            traceback.format_exc())

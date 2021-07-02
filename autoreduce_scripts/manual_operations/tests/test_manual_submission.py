@@ -7,8 +7,9 @@
 """
 Test cases for the manual job submission script
 """
+from autoreduce_scripts.manual_operations.rb_categories import RBCategory
 from unittest.mock import MagicMock, Mock, patch
-
+from parameterized import parameterized
 from autoreduce_utils.clients.connection_exception import ConnectionException
 from autoreduce_utils.clients.icat_client import ICATClient
 from autoreduce_utils.clients.queue_client import QueueClient
@@ -231,22 +232,17 @@ class TestManualSubmission(TestCase):
                           run_number=None))
 
     @patch('autoreduce_scripts.manual_operations.manual_submission.login_queue')
-    @patch('autoreduce_scripts.manual_operations.manual_submission.get_location_and_rb')
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_location_and_rb',
+           return_value=('test/file/path', "2222"))
     @patch('autoreduce_scripts.manual_operations.manual_submission.submit_run')
-    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_range')
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_range', return_value=range(1111, 1112))
     def test_main_valid(self, mock_run_range, mock_submit, mock_get_loc, mock_queue):
         """
         Test: The control methods are called in the correct order
         When: main is called and the environment (client settings, input, etc.) is valid
         """
-        mock_run_range.return_value = range(1111, 1112)
-
         # Setup Mock clients
-        mock_queue_client = Mock()
-
-        # Assign Mock return values
-        mock_queue.return_value = mock_queue_client
-        mock_get_loc.return_value = ('test/file/path', 2222)
+        mock_queue_client = mock_queue.return_value
 
         # Call functionality
         return_value = ms.main(instrument='TEST', first_run=1111)
@@ -256,7 +252,7 @@ class TestManualSubmission(TestCase):
         mock_run_range.assert_called_with(1111, last_run=None)
         mock_queue.assert_called_once()
         mock_get_loc.assert_called_once_with('TEST', 1111, "nxs")
-        mock_submit.assert_called_once_with(mock_queue_client, 2222, 'TEST', 'test/file/path', 1111)
+        mock_submit.assert_called_once_with(mock_queue_client, "2222", 'TEST', 'test/file/path', 1111)
 
     @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_range')
     def test_main_bad_client(self, mock_get_run_range):
@@ -267,3 +263,31 @@ class TestManualSubmission(TestCase):
         mock_get_run_range.return_value = range(1111, 1112)
         self.assertRaises(RuntimeError, ms.main, 'TEST', 1111)
         mock_get_run_range.assert_called_with(1111, last_run=None)
+
+    @parameterized.expand([
+        ["210NNNN", RBCategory.DIRECT_ACCESS],
+        ["211NNNN", RBCategory.RAPID_ACCESS],
+        ["212NNNN", RBCategory.RAPID_ACCESS],
+        ["2130NNN", RBCategory.COMMISSIONING],
+        ["2135NNN", RBCategory.CALIBRATION],
+        ["215NNNN", RBCategory.INDUSTRIAL_ACCESS],
+        ["216NNNN", RBCategory.INTERNATIONAL_PARTNERS],
+        ["219NNNN", RBCategory.XPESS_ACCESS],
+        ["214NNNN", RBCategory.UNCATEGORIZED],
+        ["217NNNN", RBCategory.UNCATEGORIZED],
+        ["218NNNN", RBCategory.UNCATEGORIZED],
+        ["99999999999", RBCategory.UNCATEGORIZED],
+        ["0", RBCategory.UNCATEGORIZED],
+        ["1234", RBCategory.UNCATEGORIZED],
+    ])
+    def test_categorize_rb_number(self, rb_num, expected_category):
+        assert ms.categorize_rb_number("/test", rb_num) == expected_category
+
+    @patch("autoreduce_scripts.manual_operations.manual_submission._read_rb_from_datafile", return_value="2100000")
+    def test_categorize_rb_number_cal_in_rb_field(self, _read_rb_from_datafile: Mock):
+        """
+        Test: The real number is read from the Datafile
+        When: The run is a calibration run and ICAT has overwritten the real RB
+        """
+        assert ms.categorize_rb_number("/test", "CAL_01_01_2020") == RBCategory.DIRECT_ACCESS
+        _read_rb_from_datafile.assert_called_once()
