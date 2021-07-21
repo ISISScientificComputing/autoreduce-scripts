@@ -197,7 +197,9 @@ class TestManualSubmission(TestCase):
         """
         con_exp = ConnectionException('icat')
         mock_connect.side_effect = con_exp
-        self.assertIsNone(ms.login_icat())
+        with self.assertRaises(RuntimeError):
+            ms.login_icat()
+        mock_connect.assert_called_once()
 
     @patch('autoreduce_scripts.manual_operations.manual_submission.QueueClient.connect')
     def test_queue_login_valid(self, _):
@@ -261,7 +263,7 @@ class TestManualSubmission(TestCase):
         When: Neither ICAT or Database connections can be established
         """
         mock_get_run_range.return_value = range(1111, 1112)
-        self.assertRaises(RuntimeError, ms.main, 'TEST', 1111)
+        self.assertRaises(ValueError, ms.main, 'TEST', 1111)
         mock_get_run_range.assert_called_with(1111, last_run=None)
 
     @parameterized.expand([

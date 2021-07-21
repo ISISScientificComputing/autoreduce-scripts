@@ -101,9 +101,6 @@ def get_location_and_rb_from_icat(instrument, run_number, file_ext) -> Tuple[str
     """
     icat_client = login_icat()
 
-    if icat_client is None:
-        raise RuntimeError("Unable to proceed. Unable to connect to ICAT.")
-
     # look for file-name assuming file-name uses prefix instrument name
     icat_instrument_prefix = get_icat_instrument_prefix(instrument)
     file_name = f"{icat_instrument_prefix}{str(run_number).zfill(5)}.{file_ext}"
@@ -166,9 +163,9 @@ def login_icat():
     icat_client = ICATClient()
     try:
         icat_client.connect()
-    except ConnectionException:
+    except ConnectionException as exc:
         print("Couldn't connect to ICAT. Continuing without ICAT connection.")
-        icat_client = None
+        raise RuntimeError("Unable to proceed. Unable to connect to ICAT.") from exc
     return icat_client
 
 
