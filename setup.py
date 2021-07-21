@@ -19,7 +19,7 @@ setup(
         "django==3.2.4",
         "fire==0.4.0",
         "h5py==2.10.0",  # for reading the RB number from the datafile
-        "GitPython==3.1.14"  # for backup_reduction_scripts.py
+        "GitPython==3.1.18"  # for backup_reduction_scripts.py
     ],
     packages=find_packages(),
     entry_points={
