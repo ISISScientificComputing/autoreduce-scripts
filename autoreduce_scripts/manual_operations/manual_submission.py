@@ -10,8 +10,12 @@ A module for creating and submitting manual submissions to autoreduction
 from __future__ import print_function
 
 import sys
+from typing import Tuple
 
 import fire
+import h5py
+import logging
+import traceback
 
 from autoreduce_db.reduction_viewer.models import ReductionRun
 
@@ -21,6 +25,7 @@ from autoreduce_utils.clients.queue_client import QueueClient
 from autoreduce_utils.clients.tools.isisicat_prefix_mapping import get_icat_instrument_prefix
 from autoreduce_utils.message.message import Message
 
+from autoreduce_scripts.manual_operations.rb_categories import RBCategory
 from autoreduce_scripts.manual_operations.util import get_run_range
 
 
@@ -34,8 +39,7 @@ def submit_run(active_mq_client, rb_number, instrument, data_file_location, run_
     :param run_number: run number fo the experiment
     """
     if active_mq_client is None:
-        print("ActiveMQ not connected, cannot submit runs")
-        return
+        raise RuntimeError("ActiveMQ not connected, cannot submit runs")
 
     message = Message(rb_number=rb_number,
                       instrument=instrument,
@@ -78,14 +82,13 @@ def icat_datafile_query(icat_client, file_name):
     :raises SystemExit: If icat_client not connected
     """
     if icat_client is None:
-        print("ICAT not connected")  # pragma: no cover
-        sys.exit(1)  # pragma: no cover
+        raise RuntimeError("ICAT not connected")
 
     return icat_client.execute_query("SELECT df FROM Datafile df WHERE df.name = '" + file_name +
                                      "' INCLUDE df.dataset AS ds, ds.investigation")
 
 
-def get_location_and_rb_from_icat(icat_client, instrument, run_number, file_ext):
+def get_location_and_rb_from_icat(instrument, run_number, file_ext) -> Tuple[str, str]:
     """
     Retrieves a run's data-file location and rb_number from ICAT.
     Attempts first with the default file name, then with prepended zeroes.
@@ -96,9 +99,7 @@ def get_location_and_rb_from_icat(icat_client, instrument, run_number, file_ext)
     :return: The data file location and rb_number
     :raises SystemExit: If the given run information cannot return a location and rb_number
     """
-    if icat_client is None:
-        print("ICAT not connected")  # pragma: no cover
-        sys.exit(1)  # pragma: no cover
+    icat_client = login_icat()
 
     # look for file-name assuming file-name uses prefix instrument name
     icat_instrument_prefix = get_icat_instrument_prefix(instrument)
@@ -127,7 +128,7 @@ def get_location_and_rb_from_icat(icat_client, instrument, run_number, file_ext)
     return datafile[0].location, datafile[0].dataset.investigation.name
 
 
-def get_location_and_rb(icat_client, instrument, run_number, file_ext):
+def get_location_and_rb(instrument, run_number, file_ext):
     """
     Retrieves a run's data-file location and rb_number from the auto-reduction database,
     or ICAT (if it is not in the database)
@@ -150,7 +151,7 @@ def get_location_and_rb(icat_client, instrument, run_number, file_ext):
         return result
     print(f"Cannot find datafile for run_number {run_number} in Auto-reduction database. " f"Will try ICAT...")
 
-    return get_location_and_rb_from_icat(icat_client, instrument, run_number, file_ext)
+    return get_location_and_rb_from_icat(instrument, run_number, file_ext)
 
 
 def login_icat():
@@ -162,9 +163,9 @@ def login_icat():
     icat_client = ICATClient()
     try:
         icat_client.connect()
-    except ConnectionException:
+    except ConnectionException as exc:
         print("Couldn't connect to ICAT. Continuing without ICAT connection.")
-        icat_client = None
+        raise RuntimeError("Unable to proceed. Unable to connect to ICAT.") from exc
     return icat_client
 
 
@@ -184,6 +185,50 @@ def login_queue():
     return activemq_client
 
 
+def _read_rb_from_datafile(location: str):
+    """
+    Reads the RB number from the location of the datafile
+    """
+    nxs_file = h5py.File(location, mode="r")
+
+    for (_, entry) in nxs_file.items():
+        rb_number = entry.get('experiment_identifier').value[0]
+        if rb_number:
+            return str(rb_number)
+    raise RuntimeError("Could not read RB number from datafile")
+
+
+def categorize_rb_number(location: str, rb_num: str):
+    """
+    Map RB number to a category. If an ICAT calibration RB number is provided,
+    the datafile will be checked to find out the real experiment number.
+
+    This is because ICAT will overwrite the real RB number for calibration runs!
+    """
+    if "CAL" in rb_num:
+        rb_num = _read_rb_from_datafile(location)
+
+    if len(rb_num) != 7:
+        return RBCategory.UNCATEGORIZED
+
+    if rb_num[2] == "0":
+        return RBCategory.DIRECT_ACCESS
+    elif rb_num[2] in ["1", "2"]:
+        return RBCategory.RAPID_ACCESS
+    elif rb_num[2] == "3" and rb_num[3] == "0":
+        return RBCategory.COMMISSIONING
+    elif rb_num[2] == "3" and rb_num[3] == "5":
+        return RBCategory.CALIBRATION
+    elif rb_num[2] == "5":
+        return RBCategory.INDUSTRIAL_ACCESS
+    elif rb_num[2] == "6":
+        return RBCategory.INTERNATIONAL_PARTNERS
+    elif rb_num[2] == "9":
+        return RBCategory.XPESS_ACCESS
+    else:
+        return RBCategory.UNCATEGORIZED
+
+
 def main(instrument, first_run, last_run=None):
     """
     Manually submit an instrument run from reduction.
@@ -192,23 +237,29 @@ def main(instrument, first_run, last_run=None):
     :param first_run: (int) The first run to be submitted
     :param last_run: (int) The last run to be submitted
     """
+    logger = logging.getLogger(__file__)
     run_numbers = get_run_range(first_run, last_run=last_run)
 
     instrument = instrument.upper()
-    icat_client = login_icat()
-    if not icat_client:
-        raise RuntimeError("Unable to proceed. Unable to connect to ICAT.")
 
     activemq_client = login_queue()
 
     submitted_runs = []
 
     for run in run_numbers:
-        location, rb_num = get_location_and_rb(icat_client, instrument, run, "nxs")
+        location, rb_num = get_location_and_rb(instrument, run, "nxs")
+        try:
+            category = categorize_rb_number(location, rb_num)
+            logger.info("Run is in category %s", category)
+        except RuntimeError:
+            logger.warning("Could not categorize the run due to an invalid RB number. It will be not be submitted.\n%s",
+                           traceback.format_exc())
+            continue
+
         if location and rb_num is not None:
             submitted_runs.append(submit_run(activemq_client, rb_num, instrument, location, run))
         else:
-            print("Unable to find rb number and location for {}{}".format(instrument, run))
+            logger.error("Unable to find RB number and location for %s%s", instrument, run)
 
     return submitted_runs
 
