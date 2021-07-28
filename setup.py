@@ -16,7 +16,7 @@ setup(
     install_requires=[
         "autoreduce_db==22.0.0.dev6",
         "autoreduce_utils==22.0.0.dev4",
-        "django==3.2.4",
+        "django==3.2.5",
         "fire==0.4.0",
         "h5py==2.10.0",  # for reading the RB number from the datafile
         "GitPython==3.1.14"  # for backup_reduction_scripts.py
