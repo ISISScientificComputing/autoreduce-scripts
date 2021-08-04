@@ -10,7 +10,7 @@ A module for creating and submitting manual submissions to autoreduction
 from __future__ import print_function
 
 import sys
-from typing import Tuple
+from typing import Tuple, Union
 
 import fire
 import h5py
@@ -128,6 +128,18 @@ def get_location_and_rb_from_icat(instrument, run_number, file_ext) -> Tuple[str
     return datafile[0].location, datafile[0].dataset.investigation.name
 
 
+def overwrite_icat_calibration_rb_num(location: str, rb_num: Union[str, int]) -> str:
+    """Checks if the RB number provided has been overwritten by ICAT as a calibration run.
+    If so it returns the real RB number read from the datafile.
+    """
+    rb_num = str(rb_num)
+
+    if "CAL" in rb_num:
+        rb_num = _read_rb_from_datafile(location)
+
+    return rb_num
+
+
 def get_location_and_rb(instrument, run_number, file_ext):
     """
     Retrieves a run's data-file location and rb_number from the auto-reduction database,
@@ -151,7 +163,9 @@ def get_location_and_rb(instrument, run_number, file_ext):
         return result
     print(f"Cannot find datafile for run_number {run_number} in Auto-reduction database. " f"Will try ICAT...")
 
-    return get_location_and_rb_from_icat(instrument, run_number, file_ext)
+    location, rb_num = get_location_and_rb_from_icat(instrument, run_number, file_ext)
+    rb_num = overwrite_icat_calibration_rb_num(location, rb_num)
+    return location, rb_num
 
 
 def login_icat():
@@ -189,25 +203,33 @@ def _read_rb_from_datafile(location: str):
     """
     Reads the RB number from the location of the datafile
     """
-    nxs_file = h5py.File(location, mode="r")
+    def windows_to_linux_path(path):
+        """ Convert windows path to linux path.
+        :param path:
+        :param temp_root_directory:
+        :return: (str) linux formatted file path
+        """
+        # '\\isis\inst$\' maps to '/isis/'
+        path = path.replace('\\\\isis\\inst$\\', '/isis/')
+        path = path.replace('\\', '/')
+        return path
+
+    nxs_file = h5py.File(windows_to_linux_path(location), mode="r")
 
     for (_, entry) in nxs_file.items():
-        rb_number = entry.get('experiment_identifier').value[0]
+        rb_number = entry.get('experiment_identifier').value[0].decode("utf-8")
         if rb_number:
             return str(rb_number)
     raise RuntimeError("Could not read RB number from datafile")
 
 
-def categorize_rb_number(location: str, rb_num: str):
+def categorize_rb_number(rb_num: str):
     """
     Map RB number to a category. If an ICAT calibration RB number is provided,
     the datafile will be checked to find out the real experiment number.
 
     This is because ICAT will overwrite the real RB number for calibration runs!
     """
-    if "CAL" in rb_num:
-        rb_num = _read_rb_from_datafile(location)
-
     if len(rb_num) != 7:
         return RBCategory.UNCATEGORIZED
 
@@ -249,7 +271,7 @@ def main(instrument, first_run, last_run=None):
     for run in run_numbers:
         location, rb_num = get_location_and_rb(instrument, run, "nxs")
         try:
-            category = categorize_rb_number(location, rb_num)
+            category = categorize_rb_number(rb_num)
             logger.info("Run is in category %s", category)
         except RuntimeError:
             logger.warning("Could not categorize the run due to an invalid RB number. It will be not be submitted.\n%s",
