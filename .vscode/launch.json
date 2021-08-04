@@ -3,5 +3,17 @@
     // Hover to view descriptions of existing attributes.
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
-    "configurations": []
+    "configurations": [
+        {
+            "name": "Manual Submit",
+            "type": "python",
+            "request": "launch",
+            "args": [
+                "INTER",
+                "63125"
+            ],
+            "program": "autoreduce_scripts/manual_operations/manual_submission.py",
+            "console": "integratedTerminal",
+        }
+    ]
 }
