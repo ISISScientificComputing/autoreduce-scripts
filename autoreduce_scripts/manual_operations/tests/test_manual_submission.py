@@ -7,17 +7,39 @@
 """
 Test cases for the manual job submission script
 """
-from autoreduce_scripts.manual_operations.rb_categories import RBCategory
-from unittest.mock import MagicMock, Mock, patch
-from parameterized import parameterized
+from contextlib import contextmanager
+from tempfile import NamedTemporaryFile
+
+import numpy as np
+import h5py
+
 from autoreduce_utils.clients.connection_exception import ConnectionException
 from autoreduce_utils.clients.icat_client import ICATClient
 from autoreduce_utils.clients.queue_client import QueueClient
 from autoreduce_utils.message.message import Message
+from unittest.mock import MagicMock, Mock, patch
+from parameterized import parameterized
 from django.test import TestCase
+
 from autoreduce_scripts.manual_operations import manual_submission as ms
+from autoreduce_scripts.manual_operations.rb_categories import RBCategory
 from autoreduce_scripts.manual_operations.tests.test_manual_remove import (create_experiment_and_instrument,
                                                                            make_test_run)
+
+
+@contextmanager
+def temp_hdffile():
+    try:
+        with NamedTemporaryFile() as tmpfile:
+            with h5py.File(tmpfile.name, "w") as hdffile:
+                # this code writes out the string the same way it's contained
+                # in the datafiles - as a numpy list of bytes
+                dtype = h5py.special_dtype(vlen=bytes)
+                group = hdffile.create_group("information")
+                group.create_dataset("experiment_identifier", data=np.array([b"1234567"], dtype=dtype))
+                yield tmpfile
+    finally:
+        pass
 
 
 # pylint:disable=no-self-use
@@ -68,7 +90,8 @@ class TestManualSubmission(TestCase):
 
     @patch('autoreduce_scripts.manual_operations.manual_submission.get_location_and_rb_from_database',
            return_value=None)
-    @patch('autoreduce_scripts.manual_operations.manual_submission.get_location_and_rb_from_icat')
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_location_and_rb_from_icat',
+           return_value=(None, None))
     def test_get_checks_database_then_icat(self, mock_from_icat, mock_from_database):
         """
         Test: Data for a given run is searched for in the database before calling ICAT
@@ -77,6 +100,21 @@ class TestManualSubmission(TestCase):
         ms.get_location_and_rb(**self.loc_and_rb_args)
         mock_from_database.assert_called_once()
         mock_from_icat.assert_called_once()
+
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_location_and_rb_from_database',
+           return_value=("string", 1234567))
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_location_and_rb_from_icat',
+           return_value=(None, None))
+    def test_get_database_hit_skips_icat(self, mock_from_icat, mock_from_database):
+        """
+        Test: Data for a given run is searched for in the database before calling ICAT
+        When: get_location_and_rb is called for a datafile which isn't in the database
+        """
+        result = ms.get_location_and_rb(**self.loc_and_rb_args)
+        assert result[0] == "string"
+        assert result[1] == 1234567
+        mock_from_database.assert_called_once()
+        mock_from_icat.assert_not_called()
 
     def test_get_from_database_no_run(self):
         """
@@ -283,13 +321,60 @@ class TestManualSubmission(TestCase):
         ["1234", RBCategory.UNCATEGORIZED],
     ])
     def test_categorize_rb_number(self, rb_num, expected_category):
-        assert ms.categorize_rb_number("/test", rb_num) == expected_category
+        assert ms.categorize_rb_number(rb_num) == expected_category
 
-    @patch("autoreduce_scripts.manual_operations.manual_submission._read_rb_from_datafile", return_value="2100000")
-    def test_categorize_rb_number_cal_in_rb_field(self, _read_rb_from_datafile: Mock):
+    def test_read_rb_from_datafile(self):
         """
-        Test: The real number is read from the Datafile
-        When: The run is a calibration run and ICAT has overwritten the real RB
+        Test that the rb number can be read from the datafile's
+        experiment_reference HDF5 group
         """
-        assert ms.categorize_rb_number("/test", "CAL_01_01_2020") == RBCategory.DIRECT_ACCESS
-        _read_rb_from_datafile.assert_called_once()
+        with temp_hdffile() as tmpfile:
+            # replace / with \\ so that it looks like a Windows path
+            ms._read_rb_from_datafile(tmpfile.name.replace("/", "\\\\"))
+
+    def test_read_rb_from_datafile_no_rb_number(self):
+        """
+        Test that a RuntimeError is raised if the rb number is
+        not found in the datafile's experiment_reference HDF5 group
+        """
+        with NamedTemporaryFile() as tmpfile:
+            with h5py.File(tmpfile.name, "w") as hdffile:
+                hdffile.create_group("information")
+
+            # replace / with \\ so that it looks like a Windows path
+            with self.assertRaises(RuntimeError):
+                ms._read_rb_from_datafile(tmpfile.name.replace("/", "\\\\"))
+
+    def test_read_rb_from_datafile_empty_nxs(self):
+        """
+        Test that a RuntimeError is raised if the file provided is empty
+        """
+        with NamedTemporaryFile() as tmpfile:
+            with h5py.File(tmpfile.name, "w"):
+                pass
+
+            # replace / with \\ so that it looks like a Windows path
+            with self.assertRaises(RuntimeError):
+                ms._read_rb_from_datafile(tmpfile.name.replace("/", "\\\\"))
+
+    def test_icat_datafile_query(self):
+        """
+        Test that RuntimeError is raised if the icat_client provided is None
+        """
+        with self.assertRaises(RuntimeError):
+            ms.icat_datafile_query(None, "test")
+
+    def test_overwrite_icat_calibration_rb_num(self):
+        """
+        Test that runs with CAL_<some string> get their RB overwritten with
+        one from the datafile
+        """
+        with temp_hdffile() as tmpfile:
+            assert "1234567" == ms.overwrite_icat_calibration_rb_num(tmpfile.name, "CAL_TEST")
+
+    def test_no_overwrite_icat_calibration_rb_num(self):
+        """
+        Test that the RB is not overwritten when CAL is not present in the string
+        """
+        with temp_hdffile() as tmpfile:
+            assert "test_rb_number" == ms.overwrite_icat_calibration_rb_num(tmpfile.name, "test_rb_number")

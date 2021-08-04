@@ -11,10 +11,10 @@ from __future__ import print_function
 
 import sys
 from typing import Tuple, Union
+import logging
 
 import fire
 import h5py
-import logging
 import traceback
 
 from autoreduce_db.reduction_viewer.models import ReductionRun
@@ -52,7 +52,7 @@ def submit_run(active_mq_client, rb_number, instrument, data_file_location, run_
     return message.to_dict()
 
 
-def get_location_and_rb_from_database(instrument, run_number):
+def get_location_and_rb_from_database(instrument, run_number) -> Union[None, Tuple[str, int]]:
     """
     Retrieves a run's data-file location and rb_number from the auto-reduction database
     :param database_client: Client to access auto-reduction database
@@ -214,13 +214,15 @@ def _read_rb_from_datafile(location: str):
         path = path.replace('\\', '/')
         return path
 
-    nxs_file = h5py.File(windows_to_linux_path(location), mode="r")
+    location = windows_to_linux_path(location)
+    nxs_file = h5py.File(location, mode="r")
 
     for (_, entry) in nxs_file.items():
-        rb_number = entry.get('experiment_identifier').value[0].decode("utf-8")
-        if rb_number:
-            return str(rb_number)
-    raise RuntimeError("Could not read RB number from datafile")
+        try:
+            return str(entry.get('experiment_identifier')[:][0].decode("utf-8"))
+        except Exception as err:
+            raise RuntimeError("Could not read RB number from datafile") from err
+    raise RuntimeError(f"Datafile at {location} does not have any items that can be iterated")
 
 
 def categorize_rb_number(rb_num: str):
