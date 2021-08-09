@@ -64,7 +64,6 @@ class TestManualSubmission(TestCase):
         self.experiment, self.instrument = create_experiment_and_instrument()
 
         self.run1 = make_test_run(self.experiment, self.instrument, "1")
-        self.run1.data_location = 'test/file/path/2.raw'
 
     def mock_database_query_result(self, side_effects):
         """ Sets the return value(s) of database queries to those provided
