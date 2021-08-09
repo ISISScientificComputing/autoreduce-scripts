@@ -368,15 +368,6 @@ class TestManualRemove(TestCase):
         mock_process.assert_called_once()
         mock_delete.assert_called_once()
 
-    def test_delete_data_location(self):
-        """
-        Test: The correct query is run and associated records are removed
-        When: Calling delete_data_location
-        """
-        with patch("autoreduce_scripts.manual_operations.manual_remove.DataLocation") as data_location:
-            self.manual_remove.delete_data_location(123)
-            data_location.objects.filter.assert_called_once_with(reduction_run_id=123)
-
     def test_delete_reduction_location(self):
         """
         Test: The correct query is run and associated records are removed

@@ -36,15 +36,8 @@
             "experiment_id": 1,
             "instrument_id": 2,
             "started_by": -1,
-            "reduction_host": "test-host-123"
-        }
-    },
-    {
-        "pk": 1,
-        "model": "reduction_viewer.datalocation",
-        "fields": {
-            "file_path": "/isis/NDXTestInstrument/Intsrument/data/cycle_21_1/TEST99999.nxs",
-            "reduction_run_id": 1
+            "reduction_host": "test-host-123",
+            "data_location": "/isis/NDXTestInstrument/Intsrument/data/cycle_21_1/TEST99999.nxs"
         }
     },
     {
