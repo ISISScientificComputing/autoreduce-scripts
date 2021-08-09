@@ -12,7 +12,7 @@ import sys
 
 import fire
 from django.db import IntegrityError
-from autoreduce_db.reduction_viewer.models import DataLocation, ReductionRun, ReductionLocation
+from autoreduce_db.reduction_viewer.models import ReductionRun, ReductionLocation
 from autoreduce_db.instrument.models import RunVariable, Instrument
 
 from autoreduce_scripts.manual_operations.util import get_run_range
@@ -107,7 +107,6 @@ class ManualRemove:
                     # deleting everything. Perhaps there is a badly configured relation
                     # but I am not sure why it works on _most_
                     self.delete_reduction_location(version.id)
-                    self.delete_data_location(version.id)
                     self.delete_variables(version.id)
                     self.delete_reduction_run(version.id)
 
@@ -118,14 +117,6 @@ class ManualRemove:
         :param reduction_run_id: (int) The id of the associated reduction job
         """
         ReductionLocation.objects.filter(reduction_run_id=reduction_run_id).delete()
-
-    @staticmethod
-    def delete_data_location(reduction_run_id):
-        """
-        Delete a DataLocation record from the database
-        :param reduction_run_id: (int) The id of the associated reduction job
-        """
-        DataLocation.objects.filter(reduction_run_id=reduction_run_id).delete()
 
     def delete_variables(self, reduction_run_id):
         """

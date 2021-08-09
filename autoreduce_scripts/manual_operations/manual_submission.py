@@ -52,7 +52,7 @@ def submit_run(active_mq_client, rb_number, instrument, data_file_location, run_
     return message.to_dict()
 
 
-def get_location_and_rb_from_database(instrument, run_number) -> Union[None, Tuple[str, int]]:
+def get_location_and_rb_from_database(instrument, run_number) -> Union[None, Tuple[str, str]]:
     """
     Retrieves a run's data-file location and rb_number from the auto-reduction database
     :param database_client: Client to access auto-reduction database
@@ -67,8 +67,8 @@ def get_location_and_rb_from_database(instrument, run_number) -> Union[None, Tup
         return None
 
     reduction_run_record = all_reduction_run_records.order_by('run_version').first()
-    data_location = reduction_run_record.data_location.first().file_path
-    experiment_number = reduction_run_record.experiment.reference_number
+    data_location = reduction_run_record.data_location
+    experiment_number = str(reduction_run_record.experiment.reference_number)
 
     return data_location, experiment_number
 

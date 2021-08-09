@@ -68,6 +68,7 @@ def make_test_run(experiment, instrument, run_version: str):
     msg1 = FakeMessage()
     msg1.run_number = 101
     run = create_reduction_run_record(experiment, instrument, msg1, run_version, fake_script_text, status)
+    run.data_location = 'test/file/path/2.raw'
     run.save()
     return run
 
@@ -368,15 +369,6 @@ class TestManualRemove(TestCase):
         mock_process.assert_called_once()
         mock_delete.assert_called_once()
 
-    def test_delete_data_location(self):
-        """
-        Test: The correct query is run and associated records are removed
-        When: Calling delete_data_location
-        """
-        with patch("autoreduce_scripts.manual_operations.manual_remove.DataLocation") as data_location:
-            self.manual_remove.delete_data_location(123)
-            data_location.objects.filter.assert_called_once_with(reduction_run_id=123)
-
     def test_delete_reduction_location(self):
         """
         Test: The correct query is run and associated records are removed
@@ -408,11 +400,10 @@ class TestManualRemove(TestCase):
 
     @patch.multiple("autoreduce_scripts.manual_operations.manual_remove.ManualRemove",
                     delete_reduction_location=DEFAULT,
-                    delete_data_location=DEFAULT,
                     delete_variables=DEFAULT,
                     delete_reduction_run=DEFAULT)
-    def test_delete_records_integrity_err_reverts_to_manual(self, delete_reduction_location, delete_data_location,
-                                                            delete_variables, delete_reduction_run):
+    def test_delete_records_integrity_err_reverts_to_manual(self, delete_reduction_location, delete_variables,
+                                                            delete_reduction_run):
         """
         Test: If the ReducedRun.delete fails with Integrity Error
               the code reverts back to the manual deletion of each table entry
@@ -426,7 +417,6 @@ class TestManualRemove(TestCase):
         self.manual_remove.delete_records()
 
         delete_reduction_location.assert_called_once_with(12)
-        delete_data_location.assert_called_once_with(12)
         delete_variables.assert_called_once_with(12)
         delete_reduction_run.assert_called_once_with(12)
 
