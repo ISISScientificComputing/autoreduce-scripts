@@ -68,6 +68,7 @@ def make_test_run(experiment, instrument, run_version: str):
     msg1 = FakeMessage()
     msg1.run_number = 101
     run = create_reduction_run_record(experiment, instrument, msg1, run_version, fake_script_text, status)
+    run.data_location = 'test/file/path/2.raw'
     run.save()
     return run
 
