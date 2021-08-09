@@ -130,7 +130,7 @@ class TestManualSubmission(TestCase):
         """
         actual = ms.get_location_and_rb_from_database('ARMI', 101)
         # Values from testing database
-        expected = ('test/file/path/2.raw', 1231231)
+        expected = ('test/file/path/2.raw', '1231231')
         self.assertEqual(expected, actual)
 
     @patch('autoreduce_scripts.manual_operations.manual_submission.login_icat')
