@@ -399,11 +399,10 @@ class TestManualRemove(TestCase):
 
     @patch.multiple("autoreduce_scripts.manual_operations.manual_remove.ManualRemove",
                     delete_reduction_location=DEFAULT,
-                    delete_data_location=DEFAULT,
                     delete_variables=DEFAULT,
                     delete_reduction_run=DEFAULT)
-    def test_delete_records_integrity_err_reverts_to_manual(self, delete_reduction_location, delete_data_location,
-                                                            delete_variables, delete_reduction_run):
+    def test_delete_records_integrity_err_reverts_to_manual(self, delete_reduction_location, delete_variables,
+                                                            delete_reduction_run):
         """
         Test: If the ReducedRun.delete fails with Integrity Error
               the code reverts back to the manual deletion of each table entry
@@ -417,7 +416,6 @@ class TestManualRemove(TestCase):
         self.manual_remove.delete_records()
 
         delete_reduction_location.assert_called_once_with(12)
-        delete_data_location.assert_called_once_with(12)
         delete_variables.assert_called_once_with(12)
         delete_reduction_run.assert_called_once_with(12)
 
