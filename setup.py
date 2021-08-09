@@ -9,7 +9,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="autoreduce_scripts",
-    version="22.0.0.dev13",
+    version="22.0.0.dev14",
     description="ISIS Autoreduce helper scripts",
     author="ISIS Autoreduction Team",
     url="https://github.com/ISISScientificComputing/autoreduce-scripts/",
