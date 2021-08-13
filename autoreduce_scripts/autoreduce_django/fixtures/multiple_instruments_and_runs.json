@@ -36,7 +36,7 @@
             "experiment_id": 1,
             "instrument_id": 2,
             "started_by": -1,
-            "reduction_host": "test-host-123",
+            "reduction_host": "test-host-123"
         }
     },
     {
