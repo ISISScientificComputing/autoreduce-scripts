@@ -35,7 +35,7 @@ def main(instrument, *runs: Tuple[int]):
         rb_numbers.append(rb_num)
     if not all_equal(rb_numbers):
         raise RuntimeError("Submitted runs have mismatching RB numbers")
-    return submit_run(activemq_client, rb_numbers, instrument, locations, runs)
+    return submit_run(activemq_client, rb_numbers[0], instrument, locations, runs)
 
 
 def fire_entrypoint():
