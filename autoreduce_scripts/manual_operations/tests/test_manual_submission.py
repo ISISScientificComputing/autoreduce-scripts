@@ -9,6 +9,7 @@ Test cases for the manual job submission script
 """
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
+from unittest.mock import MagicMock, Mock, patch
 
 import numpy as np
 import h5py
@@ -17,7 +18,6 @@ from autoreduce_utils.clients.connection_exception import ConnectionException
 from autoreduce_utils.clients.icat_client import ICATClient
 from autoreduce_utils.clients.queue_client import QueueClient
 from autoreduce_utils.message.message import Message
-from unittest.mock import MagicMock, Mock, patch
 from parameterized import parameterized
 from django.test import TestCase
 

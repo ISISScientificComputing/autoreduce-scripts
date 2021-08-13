@@ -10,12 +10,12 @@ A module for creating and submitting manual submissions to autoreduction
 from __future__ import print_function
 
 import sys
-from typing import Tuple, Union
+from typing import List, Tuple, Union
 import logging
+import traceback
 
 import fire
 import h5py
-import traceback
 
 from autoreduce_db.reduction_viewer.models import ReductionRun
 
@@ -29,7 +29,8 @@ from autoreduce_scripts.manual_operations.rb_categories import RBCategory
 from autoreduce_scripts.manual_operations.util import get_run_range
 
 
-def submit_run(active_mq_client, rb_number, instrument, data_file_location, run_number):
+def submit_run(active_mq_client, rb_number: Union[str, List[str]], instrument: str,
+               data_file_location: Union[str, List[str]], run_number: Union[int, Tuple[int]]):
     """
     Submit a new run for autoreduction
     :param active_mq_client: The client for access to ActiveMQ
