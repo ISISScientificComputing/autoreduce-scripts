@@ -10,6 +10,16 @@ setup_django()
 from autoreduce_scripts.manual_operations.manual_submission import get_location_and_rb, login_queue, submit_run
 
 
+def all_equal(iterator):
+    """Tests that all elements in a list are equal"""
+    iterator = iter(iterator)
+    try:
+        first = next(iterator)
+    except StopIteration:
+        return True
+    return all(first == x for x in iterator)
+
+
 def main(instrument, *runs: Tuple[int]):
     """Submits the runs for this instrument as a single reduction"""
 
@@ -23,8 +33,9 @@ def main(instrument, *runs: Tuple[int]):
         location, rb_num = get_location_and_rb(instrument, run, "nxs")
         locations.append(location)
         rb_numbers.append(rb_num)
-
-    submit_run(activemq_client, rb_numbers, instrument, locations, runs)
+    if not all_equal(rb_numbers):
+        raise RuntimeError("Submitted runs have mismatching RB numbers")
+    return submit_run(activemq_client, rb_numbers, instrument, locations, runs)
 
 
 def fire_entrypoint():
