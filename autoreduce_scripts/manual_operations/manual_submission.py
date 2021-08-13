@@ -67,7 +67,7 @@ def get_location_and_rb_from_database(instrument, run_number) -> Union[None, Tup
         return None
 
     reduction_run_record = all_reduction_run_records.order_by('run_version').first()
-    data_location = reduction_run_record.data_location
+    data_location = reduction_run_record.data_location.first().file_path
     experiment_number = str(reduction_run_record.experiment.reference_number)
 
     return data_location, experiment_number
