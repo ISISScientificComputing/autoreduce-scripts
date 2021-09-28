@@ -20,7 +20,7 @@ def all_equal(iterator):
     return all(first == x for x in iterator)
 
 
-def main(instrument, *runs: Tuple[int]):
+def main(instrument, runs: Tuple[int], reduction_arguments: dict):
     """Submits the runs for this instrument as a single reduction"""
 
     logger = logging.getLogger(__file__)
@@ -35,7 +35,7 @@ def main(instrument, *runs: Tuple[int]):
         rb_numbers.append(rb_num)
     if not all_equal(rb_numbers):
         raise RuntimeError("Submitted runs have mismatching RB numbers")
-    return submit_run(activemq_client, rb_numbers[0], instrument, locations, runs)
+    return submit_run(activemq_client, rb_numbers[0], instrument, locations, runs, reduction_arguments)
 
 
 def fire_entrypoint():
