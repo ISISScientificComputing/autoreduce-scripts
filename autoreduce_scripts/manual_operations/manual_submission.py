@@ -10,7 +10,7 @@ A module for creating and submitting manual submissions to autoreduction
 from __future__ import print_function
 
 import sys
-from typing import Dict, List, Tuple, Union
+from typing import List, Tuple, Union
 import logging
 import traceback
 
@@ -34,7 +34,7 @@ def submit_run(active_mq_client,
                instrument: str,
                data_file_location: Union[str, List[str]],
                run_number: Union[int, Tuple[int]],
-               reduction_arguments: dict = {},
+               reduction_arguments: dict = None,
                user_id=-1,
                description=""):
     """
@@ -45,6 +45,8 @@ def submit_run(active_mq_client,
     :param data_file_location: location of the data file
     :param run_number: run number fo the experiment
     """
+    if reduction_arguments is None:
+        reduction_arguments = {}
     if active_mq_client is None:
         raise RuntimeError("ActiveMQ not connected, cannot submit runs")
 
