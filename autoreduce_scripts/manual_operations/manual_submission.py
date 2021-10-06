@@ -34,7 +34,9 @@ def submit_run(active_mq_client,
                instrument: str,
                data_file_location: Union[str, List[str]],
                run_number: Union[int, Tuple[int]],
-               reduction_arguments: dict = {}):
+               reduction_arguments: dict = {},
+               user_id=-1,
+               description=""):
     """
     Submit a new run for autoreduction
     :param active_mq_client: The client for access to ActiveMQ
@@ -46,13 +48,16 @@ def submit_run(active_mq_client,
     if active_mq_client is None:
         raise RuntimeError("ActiveMQ not connected, cannot submit runs")
 
-    message = Message(rb_number=rb_number,
-                      instrument=instrument,
-                      data=data_file_location,
-                      run_number=run_number,
-                      facility="ISIS",
-                      started_by=-1,
-                      reduction_arguments=reduction_arguments)
+    message = Message(
+        rb_number=rb_number,
+        instrument=instrument,
+        data=data_file_location,
+        run_number=run_number,
+        facility="ISIS",
+        started_by=user_id,
+        reduction_arguments=reduction_arguments,
+        description=description,
+    )
     active_mq_client.send('/queue/DataReady', message, priority=1)
     print("Submitted run: \r\n", message.serialize(indent=1))
     return message.to_dict()
