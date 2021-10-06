@@ -14,12 +14,12 @@ setup(
     author="ISIS Autoreduction Team",
     url="https://github.com/ISISScientificComputing/autoreduce-scripts/",
     install_requires=[
-        "autoreduce_db==22.0.0.dev10",
-        "autoreduce_utils==22.0.0.dev4",
-        "django==3.2.6",
+        "autoreduce_db==22.0.0.dev12",
+        "autoreduce_utils==22.0.0.dev5",
+        "django==3.2.8",
         "fire==0.4.0",
         "h5py==2.10.0",  # for reading the RB number from the datafile
-        "GitPython==3.1.14"  # for backup_reduction_scripts.py
+        "GitPython==3.1.25"  # for backup_reduction_scripts.py
     ],
     packages=find_packages(),
     entry_points={
