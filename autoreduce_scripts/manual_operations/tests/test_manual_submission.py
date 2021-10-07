@@ -11,19 +11,20 @@ from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
 from unittest.mock import MagicMock, Mock, patch
 
-import numpy as np
 import h5py
-
+import numpy as np
 from autoreduce_utils.clients.connection_exception import ConnectionException
 from autoreduce_utils.clients.icat_client import ICATClient
 from autoreduce_utils.clients.queue_client import QueueClient
 from autoreduce_utils.message.message import Message
-from parameterized import parameterized
 from django.test import TestCase
+from parameterized import parameterized
 
 from autoreduce_scripts.manual_operations import manual_submission as ms
 from autoreduce_scripts.manual_operations.rb_categories import RBCategory
-from autoreduce_scripts.manual_operations.tests.test_manual_remove import (FakeMessage, make_test_run)
+from autoreduce_scripts.manual_operations.tests.test_manual_remove import (FakeMessage,
+                                                                           create_experiment_and_instrument,
+                                                                           make_test_run)
 
 
 @contextmanager
