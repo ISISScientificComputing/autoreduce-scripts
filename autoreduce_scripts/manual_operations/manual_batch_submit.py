@@ -1,4 +1,3 @@
-from typing import Tuple
 import logging
 
 import fire
@@ -7,6 +6,7 @@ from autoreduce_scripts.manual_operations import setup_django
 
 setup_django()
 
+# pylint:disable=wrong-import-position
 from autoreduce_scripts.manual_operations.manual_submission import get_location_and_rb, login_queue, submit_run
 
 
