@@ -41,6 +41,9 @@ def main():
 
         last_run = instrument.reduction_runs.last()
         if last_run and timezone.now() - last_run.created > timedelta(1):
+            # don't use batch runs to check when the last run was
+            if last_run.batch_run:
+                continue
             if str(last_run.run_number) not in last_runs_txt:
                 logger.warning("Instrument %s has not had runs in over 1 day", instrument)
             else:
