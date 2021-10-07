@@ -558,4 +558,4 @@ class TestManualRemoveBatchRuns(TestCase):
         Test: find_batch_run finds the correct run object, which should equal the one from setUp
         When: find_batch_run is called
         """
-        assert self.manual_remove.find_batch_run(self.batch_run1.pk) == self.batch_run1
+        assert self.manual_remove.find_batch_run(self.batch_run1.pk)[0] == self.batch_run1
