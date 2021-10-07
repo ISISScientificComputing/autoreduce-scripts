@@ -39,7 +39,7 @@ class ManualRemove:
         instrument_record, _ = Instrument.objects.get_or_create(name=self.instrument)
         result = ReductionRun.objects \
             .filter(instrument=instrument_record.id) \
-            .filter(run_number=run_number) \
+            .filter(run_numbers__run_number=run_number) \
             .order_by('-created')
         self.to_delete[run_number] = list(result)
         return result
