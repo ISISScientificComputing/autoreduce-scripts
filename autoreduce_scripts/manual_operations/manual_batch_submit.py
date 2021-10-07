@@ -20,7 +20,7 @@ def all_equal(iterator):
     return all(first == x for x in iterator)
 
 
-def main(instrument, runs: Tuple[int], reduction_arguments: dict, user_id: int, description: str):
+def main(instrument, runs: tuple, reduction_arguments: dict, user_id: int, description: str):
     """Submits the runs for this instrument as a single reduction"""
 
     logger = logging.getLogger(__file__)

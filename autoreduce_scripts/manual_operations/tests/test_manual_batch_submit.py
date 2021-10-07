@@ -1,4 +1,3 @@
-from autoreduce_scripts.manual_operations.tests.test_manual_remove import create_experiment_and_instrument
 from unittest.mock import Mock, call, patch
 
 from django.test import TestCase
