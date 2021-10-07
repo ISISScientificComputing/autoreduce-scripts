@@ -23,12 +23,18 @@ from django.test import TestCase
 
 from autoreduce_scripts.manual_operations import manual_submission as ms
 from autoreduce_scripts.manual_operations.rb_categories import RBCategory
-from autoreduce_scripts.manual_operations.tests.test_manual_remove import (create_experiment_and_instrument,
-                                                                           make_test_run)
+from autoreduce_scripts.manual_operations.tests.test_manual_remove import (FakeMessage, make_test_run)
 
 
 @contextmanager
 def temp_hdffile():
+    """
+    Writes a HDF5 file into a temporary file.
+    Used in tests to ensure that experiment references are read correctly.
+
+    The location of the experiment reference number
+    in the HDF5 file is standard for ISIS NXS files.
+    """
     try:
         with NamedTemporaryFile() as tmpfile:
             with h5py.File(tmpfile.name, "w") as hdffile:
@@ -130,7 +136,7 @@ class TestManualSubmission(TestCase):
         """
         actual = ms.get_location_and_rb_from_database('ARMI', 101)
         # Values from testing database
-        expected = ('test/file/path/2.raw', '1231231')
+        expected = (FakeMessage().data, '1231231')
         self.assertEqual(expected, actual)
 
     @patch('autoreduce_scripts.manual_operations.manual_submission.login_icat')
@@ -204,13 +210,19 @@ class TestManualSubmission(TestCase):
         Test: A given run is submitted to the DataReady queue
         When: submit_run is called with valid arguments
         """
+        self.sub_run_args["reduction_arguments"] = {"test_int": 123, "test_list": [1, 2, 3]}
+        self.sub_run_args["user_id"] = 15151
+        self.sub_run_args["description"] = "test_description"
         ms.submit_run(**self.sub_run_args)
         message = Message(rb_number=self.sub_run_args["rb_number"],
                           instrument=self.sub_run_args["instrument"],
                           data=self.sub_run_args["data_file_location"],
                           run_number=self.sub_run_args["run_number"],
                           facility="ISIS",
-                          started_by=-1)
+                          started_by=self.sub_run_args["user_id"],
+                          reduction_arguments=self.sub_run_args["reduction_arguments"],
+                          description=self.sub_run_args["description"])
+
         self.sub_run_args["active_mq_client"].send.assert_called_with('/queue/DataReady', message, priority=1)
 
     @patch('icat.Client')
