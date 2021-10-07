@@ -3,7 +3,6 @@
         "model": "reduction_viewer.reductionrun",
         "pk": 1,
         "fields": {
-            "run_number": 99999,
             "status_id": 5,
             "run_version": 0,
             "run_description": "This is the test run_description",
@@ -20,10 +19,17 @@
         }
     },
     {
+        "model": "reduction_viewer.runnumber",
+        "pk": 1,
+        "fields": {
+            "run_number": 99999,
+            "reduction_run_id": 1
+        }
+    },
+    {
         "model": "reduction_viewer.reductionrun",
         "pk": 2,
         "fields": {
-            "run_number": 123,
             "status_id": 5,
             "run_version": 0,
             "run_description": "This is the test run_description",
@@ -37,6 +43,14 @@
             "instrument_id": 2,
             "started_by": -1,
             "reduction_host": "test-host-123"
+        }
+    },
+    {
+        "model": "reduction_viewer.runnumber",
+        "pk": 2,
+        "fields": {
+            "run_number": 123,
+            "reduction_run_id": 2
         }
     },
     {
