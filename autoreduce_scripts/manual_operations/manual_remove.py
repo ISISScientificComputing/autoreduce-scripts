@@ -209,6 +209,7 @@ def remove(instrument, run_number, delete_all_versions: bool, batch_run: bool):
     if not batch_run:
         manual_remove.find_run_versions_in_database(run_number)
     else:
+        # parameter name is run_number but it's actually the batch run primary key!
         manual_remove.find_batch_run(run_number)
     manual_remove.process_results(delete_all_versions)
     manual_remove.delete_records()
@@ -238,7 +239,8 @@ def main(instrument: str, first_run: int, last_run: int = None, delete_all_versi
     """
     Parse user input and run the script to remove runs for a given instrument
     :param instrument: (str) Instrument to run on
-    :param first_run: (int) First run to be removed
+    :param first_run: (int) First run to be removed.
+                      If batch=True this should be the primary key of the ReductionRun object
     :param last_run: (int) Optional last run to be removed
     :param delete_all_versions: (bool) Deletes all versions for a run without asking
     :param no_input: (bool) Whether to prompt the user when deleting many runs

@@ -102,6 +102,18 @@ def make_test_run(experiment, instrument, run_version: str):
     return run
 
 
+def make_test_batch_run(experiment, instrument, run_version: str):
+    "Creates a test run and saves it to the database"
+    status = Status.get_queued()
+    fake_script_text = "scripttext"
+    msg1 = FakeMessage()
+    msg1.run_number = [101, 102, 103]
+    run = create_reduction_run_record(experiment, instrument, msg1, run_version, fake_script_text, status)
+    run.save()
+    run.data_location.create(file_path='test/file/path/2.raw')
+    return run
+
+
 class TestManualRemove(TestCase):
     """
     Test manual_remove.py
@@ -393,7 +405,7 @@ class TestManualRemove(TestCase):
         Test: The correct control functions are called
         When: The run() function is called
         """
-        remove("GEM", 1, False)
+        remove("GEM", 1, False, False)
         mock_find.assert_called_once_with(1)
         mock_process.assert_called_once()
         mock_delete.assert_called_once()
@@ -495,3 +507,55 @@ class TestManualRemove(TestCase):
 
         with patch.object(builtins, "input", lambda _: "N"):
             self.assertEqual(user_input_check(range(1, 11), "GEM"), False)
+
+
+class TestManualRemoveBatchRuns(TestCase):
+    """
+    Test manual_remove.py
+    """
+    fixtures = ["status_fixture"]
+
+    def setUp(self):
+        self.manual_remove = ManualRemove(instrument="ARMI")
+        # Setup database connection so it is possible to use
+        # ReductionRun objects with valid meta data
+        self.experiment, self.instrument = create_experiment_and_instrument()
+
+        self.batch_run1 = make_test_batch_run(self.experiment, self.instrument, "1")
+        self.batch_run2 = make_test_batch_run(self.experiment, self.instrument, "2")
+        self.batch_run3 = make_test_batch_run(self.experiment, self.instrument, "3")
+
+    # pylint:disable=no-self-use
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.find_run_versions_in_database")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.process_results")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.delete_records")
+    def test_remove_with_mocks(self, mock_delete, mock_process, mock_find):
+        """
+        Test: The correct control functions are called
+        When: The remove() function is called
+        """
+        remove("GEM", self.batch_run1.pk, False, batch_run=True)
+        mock_find.assert_not_called()
+        mock_process.assert_called_once()
+        mock_delete.assert_called_once()
+
+    # pylint:disable=no-self-use
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.find_run_versions_in_database")
+    def test_remove_without_mocks(self, mock_find):
+        """
+        Test: The ReductionRun object is removed from the database
+        When: The remove() function is called
+        """
+        pks = [self.batch_run1.pk, self.batch_run2.pk, self.batch_run3.pk]
+        for pk in pks:
+            remove("GEM", pk, False, batch_run=True)
+            mock_find.assert_not_called()
+            with self.assertRaises(ReductionRun.DoesNotExist):
+                ReductionRun.objects.get(pk=pk)
+
+    def test_find_batch_run(self):
+        """
+        Test: find_batch_run finds the correct run object, which should equal the one from setUp
+        When: find_batch_run is called
+        """
+        assert self.manual_remove.find_batch_run(self.batch_run1.pk) == self.batch_run1
