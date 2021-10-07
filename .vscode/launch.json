@@ -16,6 +16,18 @@
             "console": "integratedTerminal",
         },
         {
+            "name": "Manual Remove Batch Run",
+            "type": "python",
+            "request": "launch",
+            "args": [
+                "INTER",
+                "28075", // this only works once, as new batch runs will have different primary keys!
+                "--batch"
+            ],
+            "program": "autoreduce_scripts/manual_operations/manual_remove.py",
+            "console": "integratedTerminal",
+        },
+        {
             "name": "Batch Manual Submit",
             "type": "python",
             "request": "launch",
