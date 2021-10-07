@@ -293,15 +293,17 @@ class TestManualSubmission(TestCase):
         mock_get_loc.assert_called_once_with('TEST', 1111, "nxs")
         mock_submit.assert_called_once_with(mock_queue_client, "2222", 'TEST', 'test/file/path', 1111)
 
+    @patch('autoreduce_scripts.manual_operations.manual_submission.login_icat', side_effect=RuntimeError)
     @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_range')
-    def test_main_bad_client(self, mock_get_run_range):
+    def test_main_bad_client(self, mock_get_run_range, mock_login_icat):
         """
         Test: A RuntimeError is raised
         When: Neither ICAT or Database connections can be established
         """
         mock_get_run_range.return_value = range(1111, 1112)
-        self.assertRaises(ValueError, ms.main, 'TEST', 1111)
+        self.assertRaises(RuntimeError, ms.main, 'TEST', 1111)
         mock_get_run_range.assert_called_with(1111, last_run=None)
+        mock_login_icat.assert_called_once()
 
     @parameterized.expand([
         ["210NNNN", RBCategory.DIRECT_ACCESS],
