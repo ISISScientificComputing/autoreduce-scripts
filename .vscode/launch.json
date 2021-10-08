@@ -33,8 +33,10 @@
             "request": "launch",
             "args": [
                 "INTER",
-                "63125",
-                "63126"
+                "[63125, 63126]",
+                "{}",
+                "-1",
+                "'this is a description'"
             ],
             "program": "autoreduce_scripts/manual_operations/manual_batch_submit.py",
             "console": "integratedTerminal",
