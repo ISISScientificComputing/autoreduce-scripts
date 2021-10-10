@@ -17,7 +17,6 @@ from autoreduce_scripts.manual_operations import setup_django
 setup_django()
 # pylint:disable=wrong-import-position
 from autoreduce_db.reduction_viewer.models import DataLocation, ReductionRun, ReductionLocation
-from autoreduce_db.instrument.models import RunVariable, Instrument
 
 from autoreduce_scripts.manual_operations.util import get_run_range
 
@@ -120,7 +119,6 @@ class ManualRemove:
                     # but I am not sure why it works on _most_
                     self.delete_reduction_location(run.id)
                     self.delete_data_location(run.id)
-                    self.delete_variables(run.id)
                     self.delete_reduction_run(run.id)
 
     @staticmethod

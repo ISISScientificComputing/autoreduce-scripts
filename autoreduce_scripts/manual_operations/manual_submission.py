@@ -17,6 +17,10 @@ import traceback
 import fire
 import h5py
 
+from autoreduce_scripts.manual_operations import setup_django
+
+setup_django()
+
 from autoreduce_db.reduction_viewer.models import ReductionRun
 
 from autoreduce_utils.clients.connection_exception import ConnectionException
@@ -27,6 +31,8 @@ from autoreduce_utils.message.message import Message
 
 from autoreduce_scripts.manual_operations.rb_categories import RBCategory
 from autoreduce_scripts.manual_operations.util import get_run_range
+
+logger = logging.getLogger(__file__)
 
 
 def submit_run(active_mq_client,
@@ -45,23 +51,19 @@ def submit_run(active_mq_client,
     :param data_file_location: location of the data file
     :param run_number: run number fo the experiment
     """
-    if reduction_arguments is None:
-        reduction_arguments = {}
     if active_mq_client is None:
         raise RuntimeError("ActiveMQ not connected, cannot submit runs")
 
-    message = Message(
-        rb_number=rb_number,
-        instrument=instrument,
-        data=data_file_location,
-        run_number=run_number,
-        facility="ISIS",
-        started_by=user_id,
-        reduction_arguments=reduction_arguments,
-        description=description,
-    )
+    message = Message(rb_number=rb_number,
+                      instrument=instrument,
+                      data=data_file_location,
+                      run_number=run_number,
+                      facility="ISIS",
+                      started_by=user_id,
+                      reduction_arguments=reduction_arguments,
+                      description=description)
     active_mq_client.send('/queue/DataReady', message, priority=1)
-    print("Submitted run: \r\n", message.serialize(indent=1))
+    logger.info("Submitted run: %s", message.serialize(indent=1))
     return message.to_dict()
 
 
@@ -268,16 +270,69 @@ def categorize_rb_number(rb_num: str):
         return RBCategory.UNCATEGORIZED
 
 
-def main(instrument, first_run, last_run=None):
+# def get_script_and_arguments(instrument: str, arguments: Optional[dict]) -> Tuple[str, dict, str]:
+#     """
+#     Loads the reduction script (reduce.py) as a string, and if arguments are not provided it loads
+#     them from reduce_vars.py as a module, which is then converted to a dictionary.
+
+#     Args:
+#         instrument: The name of the instrument for which the scripts will be loaded
+#         arguments: The reduction arguments that will be used for the reduction.
+#                    If None, the default arguments will be loaded from reduce_vars.py
+
+#     Returns:
+#         The reduction script as a string, the reduction arguments as a dictionary,
+#         and any error messages encountered
+#     """
+#     error_message = ""
+#     scripts_dir = Path(SCRIPTS_DIRECTORY % instrument)
+#     try:
+#         reduce_path = scripts_dir / "reduce.py"
+#         with io.open(reduce_path, 'r') as open_file:
+#             script = open_file.read()
+#     except IOError:
+#         script = ""
+
+#     if not arguments:
+#         arguments = {
+#             "standard_vars": {},
+#             "advanced_vars": {},
+#             "variable_help": {
+#                 "standard_vars": {},
+#                 "advanced_vars": {}
+#             }
+#         }
+#         vars_path = scripts_dir / "reduce_vars.py"
+#         try:
+#             spec = spec_from_file_location("reduce_vars.py", vars_path)
+#             if spec is None:
+#                 raise ImportError(f"Module at {vars_path} does not exist.")
+#             module = module_from_spec(spec)
+#             spec.loader.exec_module(module)
+#             for dict_name in ["standard_vars", "advanced_vars", "variable_help"]:
+#                 arguments[dict_name] = getattr(module, dict_name, {})
+
+#         except ImportError as exc:
+#             error_message = f"Unable to load reduction script {vars_path} due to missing import. ({exc})"
+#             logger.error(error_message)
+#         except SyntaxError as exc:
+#             error_message = f"Syntax error in reduction script {vars_path}"
+#             logger.error(error_message)
+
+#     return script, arguments, error_message
+
+
+def main(instrument, runs, reduction_script=None, reduction_arguments=None, user_id=-1, description=""):
     """
     Manually submit an instrument run from reduction.
-    All run number between `first_run` and `last_run` are submitted
+    All run number between `first_run` and `last_run` are submitted.
+
     :param instrument: (string) The name of the instrument to submit a run for
     :param first_run: (int) The first run to be submitted
     :param last_run: (int) The last run to be submitted
+    :param reduction_arguments: (dict) The arguments to be passed to the reduction script,
+                                if None the reduce_vars.py file will be loaded
     """
-    logger = logging.getLogger(__file__)
-    run_numbers = get_run_range(first_run, last_run=last_run)
 
     instrument = instrument.upper()
 
@@ -285,8 +340,8 @@ def main(instrument, first_run, last_run=None):
 
     submitted_runs = []
 
-    for run in run_numbers:
-        location, rb_num = get_location_and_rb(instrument, run, "nxs")
+    for run_number in runs:
+        location, rb_num = get_location_and_rb(instrument, run_number, "nxs")
         try:
             category = categorize_rb_number(rb_num)
             logger.info("Run is in category %s", category)
@@ -296,9 +351,11 @@ def main(instrument, first_run, last_run=None):
             continue
 
         if location and rb_num is not None:
-            submitted_runs.append(submit_run(activemq_client, rb_num, instrument, location, run))
+            submitted_runs.append(
+                submit_run(activemq_client, rb_num, instrument, location, run_number, reduction_arguments, user_id,
+                           description))
         else:
-            logger.error("Unable to find RB number and location for %s%s", instrument, run)
+            logger.error("Unable to find RB number and location for %s%s", instrument, run_number)
 
     return submitted_runs
 
