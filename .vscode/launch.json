@@ -10,7 +10,7 @@
             "request": "launch",
             "args": [
                 "INTER",
-                "63125"
+                "64035"
             ],
             "program": "autoreduce_scripts/manual_operations/manual_submission.py",
             "console": "integratedTerminal",
