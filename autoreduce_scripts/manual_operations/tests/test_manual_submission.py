@@ -287,8 +287,7 @@ class TestManualSubmission(TestCase):
     @patch('autoreduce_scripts.manual_operations.manual_submission.get_location_and_rb',
            return_value=('test/file/path', "2222"))
     @patch('autoreduce_scripts.manual_operations.manual_submission.submit_run')
-    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_range', return_value=range(1111, 1112))
-    def test_main_valid(self, mock_run_range, mock_submit, mock_get_loc, mock_queue):
+    def test_main_valid(self, mock_submit, mock_get_loc, mock_queue):
         """
         Test: The control methods are called in the correct order
         When: main is called and the environment (client settings, input, etc.) is valid
@@ -296,26 +295,31 @@ class TestManualSubmission(TestCase):
         # Setup Mock clients
         mock_queue_client = mock_queue.return_value
 
+        mock_reduction_args = Mock()
+        mock_userid = Mock()
+        mock_description = Mock()
+
         # Call functionality
-        return_value = ms.main(instrument='TEST', first_run=1111)
+        return_value = ms.main(instrument='TEST',
+                               runs=1111,
+                               reduction_arguments=mock_reduction_args,
+                               user_id=mock_userid,
+                               description=mock_description)
 
         # Assert
         assert len(return_value) == 1
-        mock_run_range.assert_called_with(1111, last_run=None)
         mock_queue.assert_called_once()
         mock_get_loc.assert_called_once_with('TEST', 1111, "nxs")
-        mock_submit.assert_called_once_with(mock_queue_client, "2222", 'TEST', 'test/file/path', 1111)
+        mock_submit.assert_called_once_with(mock_queue_client, "2222", 'TEST', 'test/file/path', 1111,
+                                            mock_reduction_args, mock_userid, mock_description)
 
     @patch('autoreduce_scripts.manual_operations.manual_submission.login_icat', side_effect=RuntimeError)
-    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_range')
-    def test_main_bad_client(self, mock_get_run_range, mock_login_icat):
+    def test_main_bad_client(self, mock_login_icat):
         """
         Test: A RuntimeError is raised
         When: Neither ICAT or Database connections can be established
         """
-        mock_get_run_range.return_value = range(1111, 1112)
         self.assertRaises(RuntimeError, ms.main, 'TEST', 1111)
-        mock_get_run_range.assert_called_with(1111, last_run=None)
         mock_login_icat.assert_called_once()
 
     @parameterized.expand([

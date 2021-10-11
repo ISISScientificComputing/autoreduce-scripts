@@ -15,8 +15,9 @@ from django.db import IntegrityError
 from autoreduce_scripts.manual_operations import setup_django
 
 setup_django()
+
 # pylint:disable=wrong-import-position
-from autoreduce_db.reduction_viewer.models import DataLocation, ReductionRun, ReductionLocation
+from autoreduce_db.reduction_viewer.models import DataLocation, Instrument, ReductionRun, ReductionLocation
 
 from autoreduce_scripts.manual_operations.util import get_run_range
 
@@ -136,24 +137,6 @@ class ManualRemove:
         :param reduction_run_id: (int) The id of the associated reduction job
         """
         DataLocation.objects.filter(reduction_run_id=reduction_run_id).delete()
-
-    def delete_variables(self, reduction_run_id):
-        """
-        Removes all the RunVariable records associated with a given ReductionRun from the database
-        :param reduction_run_id: (int) The id of the associated reduction job
-        """
-        run_variables = self.find_variables_of_reduction(reduction_run_id)
-        for record in run_variables:
-            RunVariable.objects.filter(variable_ptr_id=record.variable_ptr_id).delete()
-
-    @staticmethod
-    def find_variables_of_reduction(reduction_run_id):
-        """
-        Find all the RunVariable records in the database associated with a reduction job
-        :param reduction_run_id: (int) The id of the reduction job to filter by
-        :return: (QuerySet) of the associated RunVariables
-        """
-        return RunVariable.objects.filter(reduction_run_id=reduction_run_id)
 
     @staticmethod
     def delete_reduction_run(reduction_run_id):
