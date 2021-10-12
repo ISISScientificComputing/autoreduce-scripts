@@ -193,6 +193,22 @@ class TestManualSubmission(TestCase):
         # check returned format is OK
         self.assertEqual(location_and_rb, self.valid_return)
 
+    @patch('autoreduce_scripts.manual_operations.manual_submission.login_icat')
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_icat_instrument_prefix')
+    def test_get_location_and_rb_from_icat_raises_runtimeerror(self, _, login_icat: Mock):
+        """
+        Test: that get_location_and_rb_from_icat can handle a number of failed ICAT
+        data file search attempts before it returns valid data file and check that
+        expected format is then still returned.
+        When: get_location_and_rb_from_icat is called and the file is initially not
+        found in ICAT.
+        """
+        # icat returns: not found a number of times before file found
+        login_icat.return_value.execute_query.side_effect = [None, None, None, None]
+        # call the method to test
+        with self.assertRaises(RuntimeError):
+            ms.get_location_and_rb_from_icat(**self.loc_and_rb_args)
+
     @patch('autoreduce_scripts.manual_operations.manual_submission.get_location_and_rb_from_database')
     @patch('autoreduce_scripts.manual_operations.manual_submission.get_location_and_rb_from_icat')
     def test_get_when_run_number_not_int(self, mock_from_icat, mock_from_database):
