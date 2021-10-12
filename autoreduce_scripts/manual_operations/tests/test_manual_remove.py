@@ -1,25 +1,22 @@
 # ############################################################################### #
 # Autoreduction Repository : https://github.com/ISISScientificComputing/autoreduce
 #
-# Copyright &copy; 2020 ISIS Rutherford Appleton Laboratory UKRI
+# Copyright &copy; 2021 ISIS Rutherford Appleton Laboratory UKRI
 # SPDX - License - Identifier: GPL-3.0-or-later
 # ############################################################################### #
-"""
-Test cases for the manual job submission script
-"""
+"""Test cases for the manual job submission script."""
+# pylint:disable=no-member
 import builtins
 import socket
 from unittest.mock import DEFAULT, Mock, call, patch
 
-from autoreduce_db.instrument.models import ReductionRun
-from autoreduce_db.reduction_viewer.models import Experiment, Instrument, Status
 from django.db import IntegrityError
 from django.test import TestCase
 from django.utils import timezone
 
-from autoreduce_scripts.manual_operations.manual_remove import (ManualRemove, main, remove, user_input_check)
-
-# pylint:disable=no-member
+from autoreduce_db.instrument.models import ReductionRun
+from autoreduce_db.reduction_viewer.models import Experiment, Instrument, Status
+from autoreduce_scripts.manual_operations.manual_remove import ManualRemove, main, remove, user_input_check
 
 
 class FakeMessage:
