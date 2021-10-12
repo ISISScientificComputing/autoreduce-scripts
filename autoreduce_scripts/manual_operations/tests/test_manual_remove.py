@@ -10,6 +10,7 @@ Test cases for the manual job submission script
 import builtins
 import socket
 from typing import List, Union
+from unittest import mock
 from unittest.mock import DEFAULT, Mock, call, patch
 
 from autoreduce_db.reduction_viewer.models import Experiment, Instrument, ReductionArguments, ReductionScript, Status, DataLocation, RunNumber, ReductionRun
@@ -330,6 +331,12 @@ class TestManualRemove(TestCase):
         """
         actual = self.manual_remove.validate_csv_input("1,2,3")
         self.assertEqual((True, [1, 2, 3]), actual)
+        actual = self.manual_remove.validate_csv_input("1-3")
+        self.assertEqual((True, [1, 2, 3]), actual)
+
+        # bad input
+        actual = self.manual_remove.validate_csv_input("1-2-1")
+        self.assertEqual((False, []), actual)
 
     def test_validate_csv_invalid(self):
         """
@@ -354,6 +361,21 @@ class TestManualRemove(TestCase):
         mock_find.assert_called_once_with(1)
         mock_process.assert_called_once()
         mock_delete.assert_called_once()
+
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.find_run_versions_in_database")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.process_results")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.delete_records")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.get_run_range")
+    def test_main_with_list(self, mock_get_run_range: Mock, mock_delete: Mock, mock_process: Mock, mock_find: Mock):
+        """
+        Test: The correct control functions are called
+        When: The main() function is called
+        """
+        main(instrument="GEM", first_run=[1, 2, 3])
+        mock_get_run_range.assert_not_called()
+        mock_find.assert_has_calls([mock.call(1), mock.call(2), mock.call(3)])
+        assert mock_process.call_count == 3
+        assert mock_delete.call_count == 3
 
     # pylint:disable=no-self-use
     @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.find_run_versions_in_database")
@@ -471,10 +493,11 @@ class TestManualRemove(TestCase):
         When: Based on user input if range of runs to remove is larger than 10
         """
         with patch.object(builtins, "input", lambda _: "Y"):
-            self.assertEqual(user_input_check(range(1, 11), "GEM"), True)
+            user_input_check(range(1, 11), "GEM")
 
-        with patch.object(builtins, "input", lambda _: "N"):
-            self.assertEqual(user_input_check(range(1, 11), "GEM"), False)
+        inputs = ["N", "Y"]
+        with patch.object(builtins, "input", lambda _: inputs.pop()):
+            user_input_check(range(1, 11), "GEM")
 
 
 class TestManualRemoveBatchRuns(TestCase):

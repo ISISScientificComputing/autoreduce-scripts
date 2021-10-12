@@ -8,19 +8,17 @@
 Functionality to remove a reduction run from the database
 """
 from __future__ import print_function
-import sys
 from typing import List, Union
 
 import fire
 from django.db import IntegrityError
 from autoreduce_scripts.manual_operations import setup_django
+from autoreduce_scripts.manual_operations.util import get_run_range
 
 setup_django()
 
 # pylint:disable=wrong-import-position
 from autoreduce_db.reduction_viewer.models import DataLocation, Instrument, ReductionRun, ReductionLocation
-
-from autoreduce_scripts.manual_operations.util import get_run_range
 
 
 class ManualRemove:
@@ -204,17 +202,11 @@ def user_input_check(instrument, run_numbers):
     :param run_numbers (range object) range of instruments submitted by user
     :return (bool) True or False to confirm removal of N runs or exit script
     """
-    valid = {"Y": True, "N": False}
-
     print(f"You are about to remove more than 10 runs from {instrument} \n"
           f"Are you sure you want to remove run numbers: {run_numbers[0]}-{run_numbers[-1]}?")
-    user_input = input("Please enter Y or N: ").upper()
-
-    try:
-        return valid[user_input]
-    except KeyError:
-        print("Invalid input, please enter either 'Y' or 'N' to continue to exit script")
-    return user_input
+    user_input = None
+    while user_input != "Y":
+        user_input = input("Please enter Y: ").upper()
 
 
 def main(instrument: str,
@@ -240,9 +232,7 @@ def main(instrument: str,
     instrument = instrument.upper()
 
     if not no_input and len(run_numbers) >= 10:
-        user_input = user_input_check(instrument, run_numbers)
-        if not user_input:
-            sys.exit()
+        user_input_check(instrument, run_numbers)
 
     for run in run_numbers:
         remove(instrument, run, delete_all_versions, batch)
