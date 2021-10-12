@@ -10,7 +10,7 @@ A module for creating and submitting manual submissions to autoreduction
 from __future__ import print_function
 
 import sys
-from typing import List, Optional, Tuple, Union
+from typing import Iterable, List, Optional, Tuple, Union
 import logging
 import traceback
 
@@ -38,7 +38,7 @@ def submit_run(active_mq_client,
                rb_number: Union[str, List[str]],
                instrument: str,
                data_file_location: Union[str, List[str]],
-               run_number: Union[int, List[int]],
+               run_number: Union[int, Iterable[int]],
                reduction_script: str = None,
                reduction_arguments: dict = None,
                user_id=-1,
@@ -300,7 +300,7 @@ def categorize_rb_number(rb_num: str):
 
 
 def main(instrument,
-         runs: Union[int, List[int]],
+         runs: Union[int, Iterable[int]],
          reduction_script: Optional[str] = None,
          reduction_arguments: Optional[dict] = None,
          user_id=-1,

@@ -295,6 +295,7 @@ class TestManualSubmission(TestCase):
         # Setup Mock clients
         mock_queue_client = mock_queue.return_value
 
+        mock_reduction_script = Mock()
         mock_reduction_args = Mock()
         mock_userid = Mock()
         mock_description = Mock()
@@ -302,6 +303,7 @@ class TestManualSubmission(TestCase):
         # Call functionality
         return_value = ms.main(instrument='TEST',
                                runs=1111,
+                               reduction_script=mock_reduction_script,
                                reduction_arguments=mock_reduction_args,
                                user_id=mock_userid,
                                description=mock_description)
@@ -310,8 +312,15 @@ class TestManualSubmission(TestCase):
         assert len(return_value) == 1
         mock_queue.assert_called_once()
         mock_get_loc.assert_called_once_with('TEST', 1111, "nxs")
-        mock_submit.assert_called_once_with(mock_queue_client, "2222", 'TEST', 'test/file/path', 1111,
-                                            mock_reduction_args, mock_userid, mock_description)
+        mock_submit.assert_called_once_with(mock_queue_client,
+                                            "2222",
+                                            'TEST',
+                                            'test/file/path',
+                                            1111,
+                                            reduction_script=mock_reduction_script,
+                                            reduction_arguments=mock_reduction_args,
+                                            user_id=mock_userid,
+                                            description=mock_description)
 
     @patch('autoreduce_scripts.manual_operations.manual_submission.login_icat', side_effect=RuntimeError)
     def test_main_bad_client(self, mock_login_icat):
