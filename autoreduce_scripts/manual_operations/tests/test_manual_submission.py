@@ -1,26 +1,24 @@
 # ############################################################################### #
 # Autoreduction Repository : https://github.com/ISISScientificComputing/autoreduce
 #
-# Copyright &copy; 2020 ISIS Rutherford Appleton Laboratory UKRI
+# Copyright &copy; 2021 ISIS Rutherford Appleton Laboratory UKRI
 # SPDX - License - Identifier: GPL-3.0-or-later
 # ############################################################################### #
-"""
-Test cases for the manual job submission script
-"""
+"""Test cases for the manual job submission script."""
+# pylint:disable=no-self-use
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
-
+from unittest.mock import MagicMock, Mock, patch
 import numpy as np
+
 import h5py
+from parameterized import parameterized
+from django.test import TestCase
 
 from autoreduce_utils.clients.connection_exception import ConnectionException
 from autoreduce_utils.clients.icat_client import ICATClient
 from autoreduce_utils.clients.queue_client import QueueClient
 from autoreduce_utils.message.message import Message
-from unittest.mock import MagicMock, Mock, patch
-from parameterized import parameterized
-from django.test import TestCase
-
 from autoreduce_scripts.manual_operations import manual_submission as ms
 from autoreduce_scripts.manual_operations.rb_categories import RBCategory
 from autoreduce_scripts.manual_operations.tests.test_manual_remove import (create_experiment_and_instrument,
@@ -29,10 +27,11 @@ from autoreduce_scripts.manual_operations.tests.test_manual_remove import (creat
 
 @contextmanager
 def temp_hdffile():
+    """???"""
     try:
         with NamedTemporaryFile() as tmpfile:
             with h5py.File(tmpfile.name, "w") as hdffile:
-                # this code writes out the string the same way it's contained
+                # This code writes out the string the same way it's contained
                 # in the datafiles - as a numpy list of bytes
                 dtype = h5py.special_dtype(vlen=bytes)
                 group = hdffile.create_group("information")
@@ -42,7 +41,6 @@ def temp_hdffile():
         pass
 
 
-# pylint:disable=no-self-use
 class TestManualSubmission(TestCase):
     """
     Test manual_submission.py
@@ -87,29 +85,26 @@ class TestManualSubmission(TestCase):
             ret_obj[0].reference_number = self.valid_return[1]
         return ret_obj
 
-    @patch('autoreduce_scripts.manual_operations.manual_submission.get_location_and_rb_from_database',
-           return_value=None)
-    @patch('autoreduce_scripts.manual_operations.manual_submission.get_location_and_rb_from_icat',
-           return_value=(None, None))
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data_from_database', return_value=None)
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data_from_icat', return_value=(None, None))
     def test_get_checks_database_then_icat(self, mock_from_icat, mock_from_database):
         """
         Test: Data for a given run is searched for in the database before calling ICAT
         When: get_location_and_rb is called for a datafile which isn't in the database
         """
-        ms.get_location_and_rb(**self.loc_and_rb_args)
+        ms.get_run_data(**self.loc_and_rb_args)
         mock_from_database.assert_called_once()
         mock_from_icat.assert_called_once()
 
-    @patch('autoreduce_scripts.manual_operations.manual_submission.get_location_and_rb_from_database',
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data_from_database',
            return_value=("string", 1234567))
-    @patch('autoreduce_scripts.manual_operations.manual_submission.get_location_and_rb_from_icat',
-           return_value=(None, None))
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data_from_icat', return_value=(None, None))
     def test_get_database_hit_skips_icat(self, mock_from_icat, mock_from_database):
         """
         Test: Data for a given run is searched for in the database before calling ICAT
         When: get_location_and_rb is called for a datafile which isn't in the database
         """
-        result = ms.get_location_and_rb(**self.loc_and_rb_args)
+        result = ms.get_run_data(**self.loc_and_rb_args)
         assert result[0] == "string"
         assert result[1] == 1234567
         mock_from_database.assert_called_once()
@@ -120,7 +115,7 @@ class TestManualSubmission(TestCase):
         Test: None is returned
         When: get_location_and_rb_from_database can't find a ReductionRun record
         """
-        self.assertIsNone(ms.get_location_and_rb_from_database('GEM', 123))
+        self.assertIsNone(ms.get_run_data_from_database('GEM', 123))
 
     def test_get_from_database(self):
         """
@@ -128,7 +123,7 @@ class TestManualSubmission(TestCase):
         When: get_location_and_rb_from_database is called and the data is present
         in the database
         """
-        actual = ms.get_location_and_rb_from_database('ARMI', 101)
+        actual = ms.get_run_data_from_database('ARMI', 101)
         # Values from testing database
         expected = ('test/file/path/2.raw', '1231231')
         self.assertEqual(expected, actual)
@@ -141,7 +136,7 @@ class TestManualSubmission(TestCase):
         When: get_location_and_rb_from_icat is called and the data is present in ICAT
         """
         login_icat.return_value.execute_query.return_value = self.make_query_return_object("icat")
-        location_and_rb = ms.get_location_and_rb_from_icat(**self.loc_and_rb_args)
+        location_and_rb = ms.get_run_data_from_icat(**self.loc_and_rb_args)
         login_icat.return_value.execute_query.assert_called_once()
         self.assertEqual(location_and_rb, self.valid_return)
 
@@ -159,7 +154,7 @@ class TestManualSubmission(TestCase):
         # Add return here to ensure we do NOT try fall through cases
         # and do NOT have to deal with multiple calls to mock
         icat_client.execute_query.return_value = [data_file]
-        actual_loc, actual_inv_name = ms.get_location_and_rb_from_icat('MARI', '123', 'nxs')
+        actual_loc, actual_inv_name = ms.get_run_data_from_icat('MARI', '123', 'nxs')
         self.assertEqual('location', actual_loc)
         self.assertEqual('inv_name', actual_inv_name)
         login_icat.assert_called_once()
@@ -180,7 +175,7 @@ class TestManualSubmission(TestCase):
         # icat returns: not found a number of times before file found
         login_icat.return_value.execute_query.side_effect = [None, None, None, self.make_query_return_object("icat")]
         # call the method to test
-        location_and_rb = ms.get_location_and_rb_from_icat(**self.loc_and_rb_args)
+        location_and_rb = ms.get_run_data_from_icat(**self.loc_and_rb_args)
         # how many times have icat been called
         self.assertEqual(login_icat.return_value.execute_query.call_count, 4)
         # check returned format is OK
@@ -195,7 +190,7 @@ class TestManualSubmission(TestCase):
         """
         self.loc_and_rb_args["run_number"] = "invalid run number"
         with self.assertRaises(SystemExit):
-            ms.get_location_and_rb(**self.loc_and_rb_args)
+            ms.get_run_data(**self.loc_and_rb_args)
         mock_from_icat.assert_not_called()
         mock_from_database.assert_not_called()
 
