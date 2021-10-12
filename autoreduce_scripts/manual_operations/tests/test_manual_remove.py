@@ -135,16 +135,6 @@ class TestManualRemove(TestCase):
         self.run2 = make_test_run(self.experiment, self.instrument, "2")
         self.run3 = make_test_run(self.experiment, self.instrument, "3")
 
-    # @staticmethod
-    # def _run_variable(reduction_run_id=None, variable_ptr_id=None):
-    #     """
-    #     Create a mock object that represents a RunVariable object from the database
-    #     """
-    #     mock = Mock()
-    #     mock.reduction_run_id = reduction_run_id
-    #     mock.variable_ptr_id = variable_ptr_id
-    #     return mock
-
     def test_find_run(self):
         """
         Test: That the correct number of run versions are discovered
