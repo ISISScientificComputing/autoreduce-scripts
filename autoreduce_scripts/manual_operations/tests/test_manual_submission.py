@@ -201,7 +201,7 @@ class TestManualSubmission(TestCase):
         When: get_location_and_rb is called with a run_number which cannot be cast to int
         """
         self.loc_and_rb_args["run_number"] = "invalid run number"
-        with self.assertRaises(SystemExit):
+        with self.assertRaises(ValueError):
             ms.get_location_and_rb(**self.loc_and_rb_args)
         mock_from_icat.assert_not_called()
         mock_from_database.assert_not_called()

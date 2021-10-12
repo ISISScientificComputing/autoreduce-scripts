@@ -133,23 +133,23 @@ def get_location_and_rb_from_icat(instrument, run_number, file_ext) -> Tuple[str
     datafile = icat_datafile_query(icat_client, file_name)
 
     if not datafile:
-        print("Cannot find datafile '" + file_name + "' in ICAT. Will try with zeros in front of run number.")
+        logger.info("Cannot find datafile '%s' in ICAT. Will try with zeros in front of run number.", file_name)
         file_name = f"{icat_instrument_prefix}{str(run_number).zfill(8)}.{file_ext}"
         datafile = icat_datafile_query(icat_client, file_name)
 
     # look for file-name assuming file-name uses full instrument name
     if not datafile:
-        print("Cannot find datafile '" + file_name + "' in ICAT. Will try using full instrument name.")
+        logger.info("Cannot find datafile '%s' in ICAT. Will try using full instrument name.", file_name)
         file_name = f"{instrument}{str(run_number).zfill(5)}.{file_ext}"
         datafile = icat_datafile_query(icat_client, file_name)
 
     if not datafile:
-        print("Cannot find datafile '" + file_name + "' in ICAT. Will try with zeros in front of run number.")
+        logger.info("Cannot find datafile '%s' in ICAT. Will try with zeros in front of run number.", file_name)
         file_name = f"{instrument}{str(run_number).zfill(8)}.{file_ext}"
         datafile = icat_datafile_query(icat_client, file_name)
 
     if not datafile:
-        raise RuntimeError("Cannot find datafile '" + file_name + "' in ICAT.")
+        raise RuntimeError(f"Cannot find datafile '{file_name}' in ICAT.")
     return datafile[0].location, datafile[0].dataset.investigation.name
 
 
