@@ -322,6 +322,31 @@ class TestManualSubmission(TestCase):
                                             user_id=mock_userid,
                                             description=mock_description)
 
+    @patch('autoreduce_scripts.manual_operations.manual_submission.login_queue')
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_location_and_rb', return_value=(None, None))
+    @patch('autoreduce_scripts.manual_operations.manual_submission.submit_run')
+    def test_main_not_found_in_icat(self, mock_submit: Mock, mock_get_loc: Mock, mock_queue: Mock):
+        """
+        Test: The control methods are called in the correct order
+        When: main is called and the environment (client settings, input, etc.) is valid
+        """
+        mock_reduction_script = Mock()
+        mock_reduction_args = Mock()
+        mock_userid = Mock()
+        mock_description = Mock()
+
+        # Call functionality
+        ms.main(instrument='TEST',
+                runs=1111,
+                reduction_script=mock_reduction_script,
+                reduction_arguments=mock_reduction_args,
+                user_id=mock_userid,
+                description=mock_description)
+
+        mock_queue.assert_called_once()
+        mock_get_loc.assert_called_once()
+        mock_submit.assert_not_called()
+
     @patch('autoreduce_scripts.manual_operations.manual_submission.login_icat', side_effect=RuntimeError)
     def test_main_bad_client(self, mock_login_icat):
         """

@@ -7,8 +7,6 @@
 """
 A module for creating and submitting manual submissions to autoreduction
 """
-from __future__ import print_function
-
 import sys
 from typing import Iterable, List, Optional, Tuple, Union
 import logging
@@ -17,12 +15,6 @@ import traceback
 import fire
 import h5py
 
-from autoreduce_scripts.manual_operations import setup_django
-
-setup_django()
-
-from autoreduce_db.reduction_viewer.models import ReductionRun
-
 from autoreduce_utils.clients.connection_exception import ConnectionException
 from autoreduce_utils.clients.icat_client import ICATClient
 from autoreduce_utils.clients.queue_client import QueueClient
@@ -30,6 +22,13 @@ from autoreduce_utils.clients.tools.isisicat_prefix_mapping import get_icat_inst
 from autoreduce_utils.message.message import Message
 
 from autoreduce_scripts.manual_operations.rb_categories import RBCategory
+from autoreduce_scripts.manual_operations import setup_django
+
+setup_django()
+
+# pylint:disable=wrong-import-order,wrong-import-position
+
+from autoreduce_db.reduction_viewer.models import ReductionRun
 
 logger = logging.getLogger(__file__)
 
@@ -185,13 +184,14 @@ def get_location_and_rb(instrument: str, run_number: Union[str, int], file_ext: 
     try:
         parsed_run_number = int(run_number)
     except ValueError:
-        print(f"Cannot cast run_number as an integer. Run number given: '{run_number}'. Exiting...")
-        sys.exit(1)
+        logger.error("Cannot cast run_number as an integer. Run number given: '%s'. Exiting...", run_number)
+        raise
 
     result = get_location_and_rb_from_database(instrument, parsed_run_number)
     if result:
         return result
-    print(f"Cannot find datafile for run_number {parsed_run_number} in Auto-reduction database. " f"Will try ICAT...")
+    logger.info("Cannot find datafile for run_number %s in Auto-reduction database. "
+                "Will try ICAT...", parsed_run_number)
 
     location, rb_num = get_location_and_rb_from_icat(instrument, parsed_run_number, file_ext)
     rb_num = overwrite_icat_calibration_rb_num(location, rb_num)
@@ -333,11 +333,14 @@ def main(instrument,
 
     submitted_runs = []
 
-    if not isinstance(runs, list):
+    if not isinstance(runs, Iterable):
         runs = [runs]
 
     for run_number in runs:
         location, rb_num = get_location_and_rb(instrument, run_number, "nxs")
+        if not location and not rb_num:
+            logger.error("Unable to find RB number and location for %s%s", instrument, run_number)
+            continue
         try:
             category = categorize_rb_number(rb_num)
             logger.info("Run is in category %s", category)
@@ -346,19 +349,16 @@ def main(instrument,
                            traceback.format_exc())
             continue
 
-        if location and rb_num is not None:
-            submitted_runs.append(
-                submit_run(activemq_client,
-                           rb_num,
-                           instrument,
-                           location,
-                           run_number,
-                           reduction_script=reduction_script,
-                           reduction_arguments=reduction_arguments,
-                           user_id=user_id,
-                           description=description))
-        else:
-            logger.error("Unable to find RB number and location for %s%s", instrument, run_number)
+        submitted_runs.append(
+            submit_run(activemq_client,
+                       rb_num,
+                       instrument,
+                       location,
+                       run_number,
+                       reduction_script=reduction_script,
+                       reduction_arguments=reduction_arguments,
+                       user_id=user_id,
+                       description=description))
 
     return submitted_runs
 

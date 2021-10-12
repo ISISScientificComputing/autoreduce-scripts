@@ -9,6 +9,7 @@ Functionality to remove a reduction run from the database
 """
 from __future__ import print_function
 import sys
+from typing import List, Union
 
 import fire
 from django.db import IntegrityError
@@ -216,7 +217,12 @@ def user_input_check(instrument, run_numbers):
     return user_input
 
 
-def main(instrument: str, first_run: int, last_run: int = None, delete_all_versions=False, no_input=False, batch=False):
+def main(instrument: str,
+         first_run: Union[int, List[int]],
+         last_run: int = None,
+         delete_all_versions=False,
+         no_input=False,
+         batch=False):
     """
     Parse user input and run the script to remove runs for a given instrument
     :param instrument: (str) Instrument to run on
@@ -226,7 +232,10 @@ def main(instrument: str, first_run: int, last_run: int = None, delete_all_versi
     :param delete_all_versions: (bool) Deletes all versions for a run without asking
     :param no_input: (bool) Whether to prompt the user when deleting many runs
     """
-    run_numbers = get_run_range(first_run, last_run=last_run)
+    if not isinstance(first_run, list):
+        run_numbers = get_run_range(first_run, last_run=last_run)
+    else:
+        run_numbers = first_run
 
     instrument = instrument.upper()
 
