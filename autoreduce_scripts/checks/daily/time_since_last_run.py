@@ -13,7 +13,10 @@ from autoreduce_utils.settings import ARCHIVE_ROOT
 from django.utils import timezone
 
 from autoreduce_scripts.checks import setup_django  # setup_django first or importing the model fails
-from autoreduce_db.instrument.models import Instrument  # pylint:disable=wrong-import-order,ungrouped-imports
+
+setup_django()
+
+from autoreduce_db.reduction_viewer.models import Instrument  # pylint:disable=wrong-import-position
 
 # pylint:disable=no-member
 
