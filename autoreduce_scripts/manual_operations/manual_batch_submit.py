@@ -1,4 +1,5 @@
 import logging
+from typing import List, Optional
 
 import fire
 
@@ -20,7 +21,12 @@ def all_equal(iterator):
     return all(first == x for x in iterator)
 
 
-def main(instrument, runs: tuple, reduction_arguments: dict, user_id: int, description: str):
+def main(instrument,
+         runs: List[int],
+         reduction_script: Optional[str] = None,
+         reduction_arguments: Optional[dict] = None,
+         user_id: int = -1,
+         description: str = ""):
     """Submits the runs for this instrument as a single reduction"""
 
     logger = logging.getLogger(__file__)
@@ -35,8 +41,8 @@ def main(instrument, runs: tuple, reduction_arguments: dict, user_id: int, descr
         rb_numbers.append(rb_num)
     if not all_equal(rb_numbers):
         raise RuntimeError("Submitted runs have mismatching RB numbers")
-    return submit_run(activemq_client, rb_numbers[0], instrument, locations, runs, reduction_arguments, user_id,
-                      description)
+    return submit_run(activemq_client, rb_numbers[0], instrument, locations, runs, reduction_script,
+                      reduction_arguments, user_id, description)
 
 
 def fire_entrypoint():

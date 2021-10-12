@@ -10,7 +10,7 @@ A module for creating and submitting manual submissions to autoreduction
 from __future__ import print_function
 
 import sys
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 import logging
 import traceback
 
@@ -30,7 +30,6 @@ from autoreduce_utils.clients.tools.isisicat_prefix_mapping import get_icat_inst
 from autoreduce_utils.message.message import Message
 
 from autoreduce_scripts.manual_operations.rb_categories import RBCategory
-from autoreduce_scripts.manual_operations.util import get_run_range
 
 logger = logging.getLogger(__file__)
 
@@ -39,7 +38,8 @@ def submit_run(active_mq_client,
                rb_number: Union[str, List[str]],
                instrument: str,
                data_file_location: Union[str, List[str]],
-               run_number: Union[int, Tuple[int]],
+               run_number: Union[int, List[int]],
+               reduction_script: str = None,
                reduction_arguments: dict = None,
                user_id=-1,
                description="") -> dict:
@@ -65,6 +65,7 @@ def submit_run(active_mq_client,
                       run_number=run_number,
                       facility="ISIS",
                       started_by=user_id,
+                      reduction_script=reduction_script,
                       reduction_arguments=reduction_arguments,
                       description=description)
     active_mq_client.send('/queue/DataReady', message, priority=1)
@@ -168,7 +169,7 @@ def overwrite_icat_calibration_rb_num(location: str, rb_num: Union[str, int]) ->
     return rb_num
 
 
-def get_location_and_rb(instrument: str, run_number: str, file_ext: str) -> Tuple[str, str]:
+def get_location_and_rb(instrument: str, run_number: Union[str, int], file_ext: str) -> Tuple[str, str]:
     """
     Retrieves a run's data-file location and rb_number from the auto-reduction database,
     or ICAT (if it is not in the database)
@@ -298,7 +299,12 @@ def categorize_rb_number(rb_num: str):
         return RBCategory.UNCATEGORIZED
 
 
-def main(instrument, runs, reduction_script=None, reduction_arguments=None, user_id=-1, description="") -> list:
+def main(instrument,
+         runs: Union[int, List[int]],
+         reduction_script: Optional[str] = None,
+         reduction_arguments: Optional[dict] = None,
+         user_id=-1,
+         description="") -> list:
     """
     Manually submit an instrument run from reduction.
     All run number between `first_run` and `last_run` are submitted.
@@ -342,8 +348,15 @@ def main(instrument, runs, reduction_script=None, reduction_arguments=None, user
 
         if location and rb_num is not None:
             submitted_runs.append(
-                submit_run(activemq_client, rb_num, instrument, location, run_number, reduction_arguments, user_id,
-                           description))
+                submit_run(activemq_client,
+                           rb_num,
+                           instrument,
+                           location,
+                           run_number,
+                           reduction_script=reduction_script,
+                           reduction_arguments=reduction_arguments,
+                           user_id=user_id,
+                           description=description))
         else:
             logger.error("Unable to find RB number and location for %s%s", instrument, run_number)
 
