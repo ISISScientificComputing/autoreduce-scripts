@@ -1,5 +1,7 @@
 ignore:
-  - "*test*.py"
-  - "*/virtualenv/*"
-  - "*/test/*"
-  - "*/tests/*"
+  - "**/autoreduce_django"
+  - "**/manage.py"
+  - "**/test*.py"
+  - "**/virtualenv/*"
+  - "**/test/*"
+  - "**/tests/*"
