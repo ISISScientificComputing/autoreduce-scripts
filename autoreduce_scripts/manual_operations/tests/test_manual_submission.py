@@ -171,7 +171,7 @@ class TestManualSubmission(TestCase):
 
     @patch('autoreduce_scripts.manual_operations.manual_submission.login_icat')
     @patch('autoreduce_scripts.manual_operations.manual_submission.get_icat_instrument_prefix')
-    def test_get_location_and_rb_from_icat_when_first_file_not_found(self, _, login_icat: Mock):
+    def test_get_run_data_from_icat_when_first_file_not_found(self, _, login_icat: Mock):
         """
         Test: that get_location_and_rb_from_icat can handle a number of failed ICAT
         data file search attempts before it returns valid data file and check that
@@ -188,8 +188,8 @@ class TestManualSubmission(TestCase):
         # check returned format is OK
         self.assertEqual(location_and_rb, self.valid_return)
 
-    @patch('autoreduce_scripts.manual_operations.manual_submission.get_location_and_rb_from_database')
-    @patch('autoreduce_scripts.manual_operations.manual_submission.get_location_and_rb_from_icat')
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data_from_database')
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data_from_icat')
     def test_get_when_run_number_not_int(self, mock_from_icat, mock_from_database):
         """
         Test: A SystemExit is raised and neither the database nor ICAT are checked for data
@@ -279,7 +279,7 @@ class TestManualSubmission(TestCase):
                           run_number=None)
 
     @patch('autoreduce_scripts.manual_operations.manual_submission.login_queue')
-    @patch('autoreduce_scripts.manual_operations.manual_submission.get_location_and_rb',
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data',
            return_value=('test/file/path', "2222"))
     @patch('autoreduce_scripts.manual_operations.manual_submission.submit_run')
     @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_range', return_value=range(1111, 1112))
