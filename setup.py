@@ -1,25 +1,23 @@
-# pylint:skip-file
 """
-Wrapper for the functionality for various installation and project setup commands
-see:
-    `python setup.py help`
-for more details
+Functionality for project setup and various installations. Enter the following
+for more details:
+    `python setup.py --help`
 """
 from setuptools import setup, find_packages
 
 setup(
     name="autoreduce_scripts",
-    version="22.0.0.dev18",
+    version="22.0.0.dev19",
     description="ISIS Autoreduce helper scripts",
     author="ISIS Autoreduction Team",
     url="https://github.com/ISISScientificComputing/autoreduce-scripts/",
     install_requires=[
-        "autoreduce_db==22.0.0.dev12",
-        "autoreduce_utils==22.0.0.dev5",
+        "autoreduce_db==22.0.0.dev13",
+        "autoreduce_utils==22.0.0.dev6",
         "django==3.2.8",
         "fire==0.4.0",
-        "h5py==2.10.0",  # for reading the RB number from the datafile
-        "GitPython==3.1.14"  # for backup_reduction_scripts.py
+        "h5py==2.10.0",  # For reading the RB number from the datafile
+        "GitPython==3.1.14"  # For backup_reduction_scripts.py
     ],
     packages=find_packages(),
     entry_points={
