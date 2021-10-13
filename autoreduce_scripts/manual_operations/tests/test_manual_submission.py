@@ -21,13 +21,20 @@ from autoreduce_utils.clients.queue_client import QueueClient
 from autoreduce_utils.message.message import Message
 from autoreduce_scripts.manual_operations import manual_submission as ms
 from autoreduce_scripts.manual_operations.rb_categories import RBCategory
-from autoreduce_scripts.manual_operations.tests.test_manual_remove import (create_experiment_and_instrument,
+from autoreduce_scripts.manual_operations.tests.test_manual_remove import (FakeMessage,
+                                                                           create_experiment_and_instrument,
                                                                            make_test_run)
 
 
 @contextmanager
 def temp_hdffile():
-    """???"""
+    """
+    Writes a HDF5 file into a temporary file.
+    Used in tests to ensure that experiment references are read correctly.
+
+    The location of the experiment reference number
+    in the HDF5 file is standard for ISIS NXS files.
+    """
     try:
         with NamedTemporaryFile() as tmpfile:
             with h5py.File(tmpfile.name, "w") as hdffile:
@@ -125,7 +132,7 @@ class TestManualSubmission(TestCase):
         """
         actual = ms.get_run_data_from_database('ARMI', 101)
         # Values from testing database
-        expected = ('test/file/path/2.raw', '1231231')
+        expected = (FakeMessage().data, '1231231')
         self.assertEqual(expected, actual)
 
     @patch('autoreduce_scripts.manual_operations.manual_submission.login_icat')
@@ -199,13 +206,19 @@ class TestManualSubmission(TestCase):
         Test: A given run is submitted to the DataReady queue
         When: submit_run is called with valid arguments
         """
+        self.sub_run_args["reduction_arguments"] = {"test_int": 123, "test_list": [1, 2, 3]}
+        self.sub_run_args["user_id"] = 15151
+        self.sub_run_args["description"] = "test_description"
         ms.submit_run(**self.sub_run_args)
         message = Message(rb_number=self.sub_run_args["rb_number"],
                           instrument=self.sub_run_args["instrument"],
                           data=self.sub_run_args["data_file_location"],
                           run_number=self.sub_run_args["run_number"],
                           facility="ISIS",
-                          started_by=-1)
+                          started_by=self.sub_run_args["user_id"],
+                          reduction_arguments=self.sub_run_args["reduction_arguments"],
+                          description=self.sub_run_args["description"])
+
         self.sub_run_args["active_mq_client"].send.assert_called_with('/queue/DataReady', message, priority=1)
 
     @patch('icat.Client')
@@ -288,15 +301,17 @@ class TestManualSubmission(TestCase):
         mock_get_loc.assert_called_once_with('TEST', 1111, "nxs")
         mock_submit.assert_called_once_with(mock_queue_client, "2222", 'TEST', 'test/file/path', 1111)
 
+    @patch('autoreduce_scripts.manual_operations.manual_submission.login_icat', side_effect=RuntimeError)
     @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_range')
-    def test_main_bad_client(self, mock_get_run_range):
+    def test_main_bad_client(self, mock_get_run_range, mock_login_icat):
         """
         Test: A RuntimeError is raised
         When: Neither ICAT or Database connections can be established
         """
         mock_get_run_range.return_value = range(1111, 1112)
-        self.assertRaises(ValueError, ms.main, 'TEST', 1111)
+        self.assertRaises(RuntimeError, ms.main, 'TEST', 1111)
         mock_get_run_range.assert_called_with(1111, last_run=None)
+        mock_login_icat.assert_called_once()
 
     @parameterized.expand([
         ["210NNNN", RBCategory.DIRECT_ACCESS],

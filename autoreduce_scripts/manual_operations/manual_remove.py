@@ -12,6 +12,10 @@ import sys
 
 import fire
 from django.db import IntegrityError
+from autoreduce_scripts.manual_operations import setup_django
+
+setup_django()
+# pylint:disable=wrong-import-position
 from autoreduce_db.reduction_viewer.models import DataLocation, ReductionRun, ReductionLocation
 from autoreduce_db.instrument.models import RunVariable, Instrument
 
@@ -30,6 +34,13 @@ class ManualRemove:
         self.to_delete = {}
         self.instrument = instrument
 
+    def find_batch_run(self, pk: int):
+        """Finds the batch run by primary key (pk) and sets it for deletion"""
+        # put it into list to have the same behaviour as find_run_versions_in_database
+        result = [ReductionRun.objects.get(pk=pk)]
+        self.to_delete[pk] = result
+        return result
+
     def find_run_versions_in_database(self, run_number):
         """
         Find all run versions in the database that relate to a given instrument and run number
@@ -39,7 +50,7 @@ class ManualRemove:
         instrument_record, _ = Instrument.objects.get_or_create(name=self.instrument)
         result = ReductionRun.objects \
             .filter(instrument=instrument_record.id) \
-            .filter(run_number=run_number) \
+            .filter(run_numbers__run_number=run_number) \
             .order_by('-created')
         self.to_delete[run_number] = list(result)
         return result
@@ -94,11 +105,12 @@ class ManualRemove:
         """
         # Make a copy to ensure dict being iterated stays same size through processing
         to_delete_copy = self.to_delete.copy()
-        for run_number, job_list in to_delete_copy.items():
-            for version in job_list:
-                print(f'Deleting {self.instrument}{run_number} - v{version.run_version}')
+        for _, job_list in to_delete_copy.items():
+            for run in job_list:
+                print(f'Deleting {run.title()}')
+
                 try:
-                    version.delete()
+                    run.delete()
                 except IntegrityError as err:
                     print(f"Encountered integrity error: {err}\n\n"
                           "Reverting to old behaviour - manual deletion. This can take much longer.")
@@ -106,10 +118,10 @@ class ManualRemove:
                     # In that case we revert to the previous (much slower) way of manually
                     # deleting everything. Perhaps there is a badly configured relation
                     # but I am not sure why it works on _most_
-                    self.delete_reduction_location(version.id)
-                    self.delete_data_location(version.id)
-                    self.delete_variables(version.id)
-                    self.delete_reduction_run(version.id)
+                    self.delete_reduction_location(run.id)
+                    self.delete_data_location(run.id)
+                    self.delete_variables(run.id)
+                    self.delete_reduction_run(run.id)
 
     @staticmethod
     def delete_reduction_location(reduction_run_id):
@@ -187,14 +199,18 @@ class ManualRemove:
         return True, processed_input
 
 
-def remove(instrument, run_number, delete_all_versions: bool):
+def remove(instrument, run_number, delete_all_versions: bool, batch_run: bool):
     """
     Run the remove script for an instrument and run_number
     :param instrument: (str) Instrument to run on
     :param run_number: (int) The run number to remove
     """
     manual_remove = ManualRemove(instrument)
-    manual_remove.find_run_versions_in_database(run_number)
+    if not batch_run:
+        manual_remove.find_run_versions_in_database(run_number)
+    else:
+        # parameter name is run_number but it's actually the batch run primary key!
+        manual_remove.find_batch_run(run_number)
     manual_remove.process_results(delete_all_versions)
     manual_remove.delete_records()
 
@@ -219,11 +235,12 @@ def user_input_check(instrument, run_numbers):
     return user_input
 
 
-def main(instrument: str, first_run: int, last_run: int = None, delete_all_versions=False, no_input=False):
+def main(instrument: str, first_run: int, last_run: int = None, delete_all_versions=False, no_input=False, batch=False):
     """
     Parse user input and run the script to remove runs for a given instrument
     :param instrument: (str) Instrument to run on
-    :param first_run: (int) First run to be removed
+    :param first_run: (int) First run to be removed.
+                      If batch=True this should be the primary key of the ReductionRun object
     :param last_run: (int) Optional last run to be removed
     :param delete_all_versions: (bool) Deletes all versions for a run without asking
     :param no_input: (bool) Whether to prompt the user when deleting many runs
@@ -238,7 +255,7 @@ def main(instrument: str, first_run: int, last_run: int = None, delete_all_versi
             sys.exit()
 
     for run in run_numbers:
-        remove(instrument, run, delete_all_versions)
+        remove(instrument, run, delete_all_versions, batch)
 
     # ensure the range is generated when returning to the caller
     return list(run_numbers)

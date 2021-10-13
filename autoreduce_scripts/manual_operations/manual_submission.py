@@ -10,7 +10,7 @@ from __future__ import print_function
 import logging
 import sys
 import traceback
-from typing import Tuple, Union
+from typing import List, Tuple, Union
 
 import fire
 import h5py
@@ -25,7 +25,14 @@ from autoreduce_scripts.manual_operations.rb_categories import RBCategory
 from autoreduce_scripts.manual_operations.util import get_run_range
 
 
-def submit_run(active_mq_client, rb_number, instrument, data_file_location, run_number):
+def submit_run(active_mq_client,
+               rb_number: Union[str, List[str]],
+               instrument: str,
+               data_file_location: Union[str, List[str]],
+               run_number: Union[int, Tuple[int]],
+               reduction_arguments: dict = None,
+               user_id=-1,
+               description=""):
     """
     Submit a new run for Autoreduction.
 
@@ -39,10 +46,21 @@ def submit_run(active_mq_client, rb_number, instrument, data_file_location, run_
     Returns:
         ActiveMQ Message object that has been cast to a dictionary.
     """
+    if reduction_arguments is None:
+        reduction_arguments = {}
     if active_mq_client is None:
         raise RuntimeError("ActiveMQ not connected, cannot submit runs")
 
-    message = Message(rb_number, instrument, data_file_location, run_number, facility="ISIS", started_by=-1)
+    message = Message(
+        rb_number=rb_number,
+        instrument=instrument,
+        data=data_file_location,
+        run_number=run_number,
+        facility="ISIS",
+        started_by=user_id,
+        reduction_arguments=reduction_arguments,
+        description=description,
+    )
     active_mq_client.send('/queue/DataReady', message, priority=1)
     print("Submitted run: \r\n", message.serialize(indent=1))
 
@@ -63,12 +81,12 @@ def get_run_data_from_database(instrument, run_number) -> Union[None, Tuple[str,
         The datafile location and rb_number, or None if this information is not
         in the database.
     """
-    all_reduction_run_records = ReductionRun.objects.filter(instrument__name=instrument, run_number=run_number)
+    reduction_run_record = ReductionRun.objects.filter(
+        instrument__name=instrument, run_numbers__run_number=run_number).order_by('run_version').first()
 
-    if not all_reduction_run_records:
+    if not reduction_run_record:
         return None
 
-    reduction_run_record = all_reduction_run_records.order_by('run_version').first()
     data_location = reduction_run_record.data_location.first().file_path
     experiment_number = str(reduction_run_record.experiment.reference_number)
     #  run_title = reduction_run_record.run_title
@@ -134,9 +152,7 @@ def get_run_data_from_icat(instrument, run_number, file_ext) -> Tuple[str, str]:
         datafile = icat_datafile_query(icat_client, file_name)
 
     if not datafile:
-        print(f"Cannot find datafile '{file_name}' in ICAT. Exiting...")  # pragma: no cover
-        sys.exit(1)  # pragma: no cover
-
+        raise RuntimeError("Cannot find datafile '" + file_name + "' in ICAT.")
     return datafile[0].location, datafile[0].dataset.investigation.name
 
 
@@ -241,7 +257,10 @@ def _read_rb_from_datafile(location: str):
         return path
 
     location = windows_to_linux_path(location)
-    nxs_file = h5py.File(location, mode="r")
+    try:
+        nxs_file = h5py.File(location, mode="r")
+    except OSError as err:
+        raise RuntimeError(f"Cannot open file '{location}'") from err
 
     for _, entry in nxs_file.items():
         try:

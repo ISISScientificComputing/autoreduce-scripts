@@ -8,6 +8,7 @@
 # pylint:disable=no-member
 import builtins
 import socket
+from typing import List, Union
 from unittest.mock import DEFAULT, Mock, call, patch
 
 from django.db import IntegrityError
@@ -15,7 +16,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from autoreduce_db.instrument.models import ReductionRun
-from autoreduce_db.reduction_viewer.models import Experiment, Instrument, Status
+from autoreduce_db.reduction_viewer.models import Experiment, Instrument, Status, DataLocation, RunNumber
 from autoreduce_scripts.manual_operations.manual_remove import ManualRemove, main, remove, user_input_check
 
 
@@ -24,6 +25,7 @@ class FakeMessage:
     run_number = 1234567
     message = "I am a message"
     description = "This is a fake description"
+    data = "/some/location"
 
 
 def create_experiment_and_instrument():
@@ -34,6 +36,30 @@ def create_experiment_and_instrument():
     return experiment, instrument
 
 
+def _make_data_locations(reduction_run, message_data_loc: Union[str, List[str]]):
+    """
+    Create a new data location entry which has a foreign key linking it to the current
+    reduction run. The file path itself will point to a datafile
+    e.g. "/isis/inst$/NDXWISH/Instrument/data/cycle_17_1/WISH00038774.nxs"
+    """
+    if isinstance(message_data_loc, str):
+        DataLocation.objects.create(file_path=message_data_loc, reduction_run=reduction_run)
+    else:
+        DataLocation.objects.bulk_create(
+            [DataLocation(file_path=data_loc, reduction_run=reduction_run) for data_loc in message_data_loc])
+
+
+def _make_run_numbers(reduction_run, message_run_number: Union[int, List[int]]):
+    """
+    Creates the related RunNumber objects
+    """
+    if isinstance(message_run_number, int):
+        RunNumber.objects.create(reduction_run=reduction_run, run_number=message_run_number)
+    else:
+        RunNumber.objects.bulk_create(
+            [RunNumber(reduction_run=reduction_run, run_number=run_number) for run_number in message_run_number])
+
+
 def create_reduction_run_record(experiment, instrument, message, run_version, script_text, status):
     """
     Creates an ORM record for the given reduction run and returns
@@ -41,20 +67,23 @@ def create_reduction_run_record(experiment, instrument, message, run_version, sc
     """
 
     time_now = timezone.now()
-    reduction_run = ReductionRun(run_number=message.run_number,
-                                 run_version=run_version,
-                                 run_description=message.description,
-                                 hidden_in_failviewer=0,
-                                 admin_log='',
-                                 reduction_log='',
-                                 created=time_now,
-                                 last_updated=time_now,
-                                 experiment=experiment,
-                                 instrument=instrument,
-                                 status_id=status.id,
-                                 script=script_text,
-                                 started_by=message.started_by,
-                                 reduction_host=socket.getfqdn())
+    reduction_run = ReductionRun.objects.create(run_version=run_version,
+                                                run_description=message.description,
+                                                hidden_in_failviewer=0,
+                                                admin_log='',
+                                                reduction_log='',
+                                                created=time_now,
+                                                last_updated=time_now,
+                                                experiment=experiment,
+                                                instrument=instrument,
+                                                status_id=status.id,
+                                                script=script_text,
+                                                started_by=message.started_by,
+                                                reduction_host=socket.getfqdn(),
+                                                batch_run=isinstance(message.run_number, list))
+    _make_run_numbers(reduction_run, message.run_number)
+    _make_data_locations(reduction_run, message.data)
+
     return reduction_run
 
 
@@ -64,6 +93,18 @@ def make_test_run(experiment, instrument, run_version: str):
     fake_script_text = "scripttext"
     msg1 = FakeMessage()
     msg1.run_number = 101
+    run = create_reduction_run_record(experiment, instrument, msg1, run_version, fake_script_text, status)
+    run.save()
+    run.data_location.create(file_path='test/file/path/2.raw')
+    return run
+
+
+def make_test_batch_run(experiment, instrument, run_version: str):
+    "Creates a test run and saves it to the database"
+    status = Status.get_queued()
+    fake_script_text = "scripttext"
+    msg1 = FakeMessage()
+    msg1.run_number = [101, 102, 103]
     run = create_reduction_run_record(experiment, instrument, msg1, run_version, fake_script_text, status)
     run.save()
     run.data_location.create(file_path='test/file/path/2.raw')
@@ -361,7 +402,7 @@ class TestManualRemove(TestCase):
         Test: The correct control functions are called
         When: The run() function is called
         """
-        remove("GEM", 1, False)
+        remove("GEM", 1, False, False)
         mock_find.assert_called_once_with(1)
         mock_process.assert_called_once()
         mock_delete.assert_called_once()
@@ -463,3 +504,55 @@ class TestManualRemove(TestCase):
 
         with patch.object(builtins, "input", lambda _: "N"):
             self.assertEqual(user_input_check(range(1, 11), "GEM"), False)
+
+
+class TestManualRemoveBatchRuns(TestCase):
+    """
+    Test manual_remove.py
+    """
+    fixtures = ["status_fixture"]
+
+    def setUp(self):
+        self.manual_remove = ManualRemove(instrument="ARMI")
+        # Setup database connection so it is possible to use
+        # ReductionRun objects with valid meta data
+        self.experiment, self.instrument = create_experiment_and_instrument()
+
+        self.batch_run1 = make_test_batch_run(self.experiment, self.instrument, "1")
+        self.batch_run2 = make_test_batch_run(self.experiment, self.instrument, "2")
+        self.batch_run3 = make_test_batch_run(self.experiment, self.instrument, "3")
+
+    # pylint:disable=no-self-use
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.find_run_versions_in_database")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.process_results")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.delete_records")
+    def test_remove_with_mocks(self, mock_delete, mock_process, mock_find):
+        """
+        Test: The correct control functions are called
+        When: The remove() function is called
+        """
+        remove("GEM", self.batch_run1.pk, False, batch_run=True)
+        mock_find.assert_not_called()
+        mock_process.assert_called_once()
+        mock_delete.assert_called_once()
+
+    # pylint:disable=no-self-use
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.find_run_versions_in_database")
+    def test_remove_without_mocks(self, mock_find):
+        """
+        Test: The ReductionRun object is removed from the database
+        When: The remove() function is called
+        """
+        pks = [self.batch_run1.pk, self.batch_run2.pk, self.batch_run3.pk]
+        for pk in pks:
+            remove("GEM", pk, False, batch_run=True)
+            mock_find.assert_not_called()
+            with self.assertRaises(ReductionRun.DoesNotExist):
+                ReductionRun.objects.get(pk=pk)
+
+    def test_find_batch_run(self):
+        """
+        Test: find_batch_run finds the correct run object, which should equal the one from setUp
+        When: find_batch_run is called
+        """
+        assert self.manual_remove.find_batch_run(self.batch_run1.pk)[0] == self.batch_run1
