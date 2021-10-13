@@ -103,7 +103,6 @@ def get_run_data_from_icat(instrument, run_number, file_ext) -> Tuple[str, str]:
     attempt with the default file name, then with prepended zeroes.
 
     Args:
-        icat_client: Client to access the ICAT service.
         instrument: The name of instrument.
         run_number: The run number to be processed.
         file_ext: The expected file extension.
