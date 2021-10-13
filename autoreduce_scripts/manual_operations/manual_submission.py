@@ -5,12 +5,12 @@
 # SPDX - License - Identifier: GPL-3.0-or-later
 # ############################################################################### #
 """A module for creating and submitting manual submissions to autoreduction."""
-# pylint:disable=no-member
+# pylint:disable=no-member,too-many-arguments
 from __future__ import print_function
 import logging
 import sys
 import traceback
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import fire
 import h5py
@@ -30,9 +30,10 @@ def submit_run(active_mq_client,
                instrument: str,
                data_file_location: Union[str, List[str]],
                run_number: Union[int, Tuple[int]],
+               run_title: str,
                reduction_arguments: dict = None,
-               user_id=-1,
-               description=""):
+               user_id: int = -1,
+               description: str = ""):
     """
     Submit a new run for Autoreduction.
 
@@ -41,7 +42,11 @@ def submit_run(active_mq_client,
         rb_number: Desired experiment RB number.
         instrument: Name of the instrument.
         data_file_location: Location of the data file.
-        run_number: Run number of the experiment.
+        run_number: Experiment's number.
+        run_title: Experiment's title,
+        reduction_arguments: Arguments for the reduction.
+        user_id: ID of the user that submitted the run.
+        description: Experiment's description.
 
     Returns:
         ActiveMQ Message object that has been cast to a dictionary.
@@ -56,6 +61,7 @@ def submit_run(active_mq_client,
         instrument=instrument,
         data=data_file_location,
         run_number=run_number,
+        run_title=run_title,
         facility="ISIS",
         started_by=user_id,
         reduction_arguments=reduction_arguments,
@@ -67,9 +73,9 @@ def submit_run(active_mq_client,
     return message.to_dict()
 
 
-def get_run_data_from_database(instrument, run_number) -> Union[None, Tuple[str, str]]:
+def get_run_data_from_database(instrument, run_number) -> Tuple[Optional[str], Optional[str], Optional[str]]:
     """
-    Return a run's datafile location rb_number, and run_title from the
+    Return a run's datafile location, rb_number, and run_title from the
     Autoreduction database.
 
     Args:
@@ -78,41 +84,20 @@ def get_run_data_from_database(instrument, run_number) -> Union[None, Tuple[str,
         run_number: The run number of the data to be retrieved.
 
     Returns:
-        The datafile location and rb_number, or None if this information is not
-        in the database.
+        The datafile location, rb_number, and title as a tuple if this run
+        exists in the database, otherwise a tuple of Nones.
     """
     reduction_run_record = ReductionRun.objects.filter(
         instrument__name=instrument, run_numbers__run_number=run_number).order_by('run_version').first()
 
     if not reduction_run_record:
-        return None
+        return None, None, None
 
     data_location = reduction_run_record.data_location.first().file_path
     experiment_number = str(reduction_run_record.experiment.reference_number)
-    #  run_title = reduction_run_record.run_title
+    run_title = reduction_run_record.run_title
 
-    return data_location, experiment_number
-
-
-def icat_datafile_query(icat_client, file_name):
-    """
-    Search for file name in ICAT and return it if it exist.
-
-    Args:
-        icat_client: Client to access the ICAT service.
-        file_name: File name to search for in ICAT.
-
-    Returns:
-        ICAT datafile entry if found.
-
-    Raises:
-        `RuntimeError` if icat_client not connected.
-    """
-    if icat_client is None:
-        raise RuntimeError("ICAT not connected")
-
-    return icat_client.execute_query(
-        f"SELECT df FROM Datafile df WHERE df.name = '{file_name}' INCLUDE df.dataset AS ds, ds.investigation")
+    return data_location, experiment_number, run_title
 
 
 def get_run_data_from_icat(instrument, run_number, file_ext) -> Tuple[str, str]:
@@ -121,7 +106,7 @@ def get_run_data_from_icat(instrument, run_number, file_ext) -> Tuple[str, str]:
     attempt with the default file name, then with prepended zeroes.
 
     Args:
-        instrument: The name of instrument.
+        instrument: The name of the instrument.
         run_number: The run number to be processed.
         file_ext: The expected file extension.
 
@@ -133,40 +118,62 @@ def get_run_data_from_icat(instrument, run_number, file_ext) -> Tuple[str, str]:
     # Look for file-name assuming file-name uses prefix instrument name
     icat_instrument_prefix = get_icat_instrument_prefix(instrument)
     file_name = f"{icat_instrument_prefix}{str(run_number).zfill(5)}.{file_ext}"
-    datafile = icat_datafile_query(icat_client, file_name)
+    datafile, _ = icat_datafile_query(icat_client, file_name)
 
     if not datafile:
-        print("Cannot find datafile '" + file_name + "' in ICAT. Will try with zeros in front of run number.")
+        print(f"Cannot find datafile '{file_name}' in ICAT. Will try with zeros in front of run number.")
         file_name = f"{icat_instrument_prefix}{str(run_number).zfill(8)}.{file_ext}"
-        datafile = icat_datafile_query(icat_client, file_name)
+        datafile, _ = icat_datafile_query(icat_client, file_name)
 
     # Look for file-name assuming file-name uses full instrument name
     if not datafile:
         print(f"Cannot find datafile '{file_name}' in ICAT. Will try using full instrument name.")
         file_name = f"{instrument}{str(run_number).zfill(5)}.{file_ext}"
-        datafile = icat_datafile_query(icat_client, file_name)
+        datafile, _ = icat_datafile_query(icat_client, file_name)
 
     if not datafile:
         print(f"Cannot find datafile '{file_name}' in ICAT. Will try with zeros in front of run number.")
         file_name = f"{instrument}{str(run_number).zfill(8)}.{file_ext}"
-        datafile = icat_datafile_query(icat_client, file_name)
+        datafile, _ = icat_datafile_query(icat_client, file_name)
 
     if not datafile:
-        raise RuntimeError("Cannot find datafile '" + file_name + "' in ICAT.")
-    return datafile[0].location, datafile[0].dataset.investigation.name
+        raise RuntimeError(f"Cannot find datafile '{file_name}' in ICAT.")
+
+    return datafile.location, datafile.dataset.investigation.name, datafile.investigation.title
 
 
-def overwrite_icat_calibration_rb_num(location: str, rb_num: Union[str, int]) -> str:
+def icat_datafile_query(icat_client, file_name):
+    """
+    Search for file name in ICAT and return it if it exist.
+
+    Args:
+        icat_client: Client to access the ICAT service.
+        file_name: File name to search for in ICAT.
+
+    Returns:
+        If found, the ICAT datafile entry.
+
+    Raises:
+        `RuntimeError` if icat_client not connected.
+    """
+    if icat_client is None:
+        raise RuntimeError("ICAT not connected")
+
+    return icat_client.execute_query(
+        f"SELECT df FROM Datafile df WHERE df.name = '{file_name}' INCLUDE df.dataset AS ds, ds.investigation")
+
+
+def overwrite_icat_calibration_rb_num(location: str, rb_number: Union[str, int]) -> str:
     """
     Return the supplied RB number if it has NOT been overwritten by ICAT as a
     calibration run. Otherwise, return the RB number read from the datafile.
     """
-    rb_num = str(rb_num)
+    rb_number = str(rb_number)
 
-    if "CAL" in rb_num:
-        rb_num = _read_rb_from_datafile(location)
+    if "CAL" in rb_number:
+        rb_number = _read_rb_from_datafile(location)
 
-    return rb_num
+    return rb_number
 
 
 def get_run_data(instrument, run_number, file_ext):
@@ -192,16 +199,14 @@ def get_run_data(instrument, run_number, file_ext):
         print(f"Cannot cast run_number as an integer. Run number given: '{run_number}'. Exiting...")
         sys.exit(1)
 
-    result = get_run_data_from_database(instrument, run_number)
-    if result:
-        return result
+    try:
+        location, rb_number, run_title = get_run_data_from_database(instrument, run_number)
+    except RuntimeError:
+        print(f"Cannot find datafile for run_number {run_number} in Autoreduction database. Will try ICAT...")
+        location, rb_number, run_title = get_run_data_from_icat(instrument, run_number, file_ext)
+        rb_number = overwrite_icat_calibration_rb_num(location, rb_number)
 
-    print(f"Cannot find datafile for run_number {run_number} in Autoreduction database. Will try ICAT...")
-
-    location, rb_num = get_run_data_from_icat(instrument, run_number, file_ext)
-    rb_num = overwrite_icat_calibration_rb_num(location, rb_num)
-
-    return location, rb_num
+    return location, rb_number, run_title
 
 
 def login_icat():
@@ -316,24 +321,24 @@ def main(instrument, first_run, last_run=None):
         The submitted runs.
     """
     logger = logging.getLogger(__file__)
-    run_numbers = get_run_range(first_run, last_run)
+    run_numbers = get_run_range(first_run, last_run=last_run)
     instrument = instrument.upper()
     activemq_client = login_queue()
 
     submitted_runs = []
     for run in run_numbers:
-        location, rb_num = get_run_data(instrument, run, "nxs")
+        location, rb_number, run_title = get_run_data(instrument, run, "nxs")
 
         try:
-            category = categorize_rb_number(rb_num)
+            category = categorize_rb_number(rb_number)
             logger.info("Run is in category %s", category)
         except RuntimeError:
             logger.warning("Could not categorize the run due to an invalid RB number. It will be not be submitted.\n%s",
                            traceback.format_exc())
             continue
 
-        if location and rb_num is not None:
-            submitted_runs.append(submit_run(activemq_client, rb_num, instrument, location, run))
+        if location and rb_number is not None:
+            submitted_runs.append(submit_run(activemq_client, rb_number, instrument, location, run, run_title))
         else:
             logger.error("Unable to find RB number and location for %s%s", instrument, run)
 
