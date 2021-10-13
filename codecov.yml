@@ -1,4 +1,5 @@
 ignore:
+  - "*test*.py"
   - "*/virtualenv/*"
   - "*/test/*"
   - "*/tests/*"
