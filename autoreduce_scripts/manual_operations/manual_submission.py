@@ -75,12 +75,12 @@ def submit_run(
     return message.to_dict()
 
 
-def get_run_data_from_database(instrument, run_number) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+def get_run_data_from_database(instrument: str, run_number: int) -> Tuple[Optional[str], Optional[str], Optional[str]]:
     """
     Retrieves a run's data-file location and rb_number from the auto-reduction database
     Args:
         database_client: Client to access auto-reduction database
-        instrument: (str) the name of the instrument associated with the run
+        instrument: The name of the instrument associated with the run
         run_number: The run number of the data to be retrieved
     Returns:
          The data file location and rb_number, or None if this information is not in the database
@@ -303,7 +303,7 @@ def categorize_rb_number(rb_num: str):
         return RBCategory.UNCATEGORIZED
 
 
-def main(instrument,
+def main(instrument: str,
          runs: Union[int, Iterable[int]],
          reduction_script: Optional[str] = None,
          reduction_arguments: Optional[dict] = None,
@@ -314,18 +314,18 @@ def main(instrument,
     All run number between `first_run` and `last_run` are submitted.
 
     Args:
-        instrument: (string) The name of the instrument to submit a run for
-        runs: (int|list) The run or runs to be submitted. If a list then all the run numbers in it will be submitted
-        reduction_script: (string) The reduction script to be used. If not provided,
+        instrument: The name of the instrument to submit a run for
+        runs: The run or runs to be submitted. If a list then all the run numbers in it will be submitted
+        reduction_script: The reduction script to be used. If not provided,
                           the default reduction script for the instrument will be used.
                           Currently unused as the queue processor will ignore the value
                           and always use the current reduce.py.
                           Issue tracking this https://autoreduce.atlassian.net/browse/AR-1056
-        reduction_arguments: (dict) The arguments to be passed to the reduction script,
+        reduction_arguments: The arguments to be passed to the reduction script,
                                 if None the reduce_vars.py file will be loaded
-        user_id: (int) The user ID that submitted the request. Using this script directly
+        user_id: The user ID that submitted the request. Using this script directly
                  and the run detection use -1, which is mapped to "Autoreduction service"
-        description: (string) A custom description of the run, if provided by the user
+        description: A custom description of the run, if provided by the user
 
     Returns:
         A list of run numbers that were submitted.
