@@ -118,28 +118,28 @@ def get_run_data_from_icat(instrument, run_number, file_ext) -> Tuple[str, str]:
     # Look for file-name assuming file-name uses prefix instrument name
     icat_instrument_prefix = get_icat_instrument_prefix(instrument)
     file_name = f"{icat_instrument_prefix}{str(run_number).zfill(5)}.{file_ext}"
-    datafile, _ = icat_datafile_query(icat_client, file_name)
+    datafile = icat_datafile_query(icat_client, file_name)
 
     if not datafile:
         print(f"Cannot find datafile '{file_name}' in ICAT. Will try with zeros in front of run number.")
         file_name = f"{icat_instrument_prefix}{str(run_number).zfill(8)}.{file_ext}"
-        datafile, _ = icat_datafile_query(icat_client, file_name)
+        datafile = icat_datafile_query(icat_client, file_name)
 
     # Look for file-name assuming file-name uses full instrument name
     if not datafile:
         print(f"Cannot find datafile '{file_name}' in ICAT. Will try using full instrument name.")
         file_name = f"{instrument}{str(run_number).zfill(5)}.{file_ext}"
-        datafile, _ = icat_datafile_query(icat_client, file_name)
+        datafile = icat_datafile_query(icat_client, file_name)
 
     if not datafile:
         print(f"Cannot find datafile '{file_name}' in ICAT. Will try with zeros in front of run number.")
         file_name = f"{instrument}{str(run_number).zfill(8)}.{file_ext}"
-        datafile, _ = icat_datafile_query(icat_client, file_name)
+        datafile = icat_datafile_query(icat_client, file_name)
 
     if not datafile:
         raise RuntimeError(f"Cannot find datafile '{file_name}' in ICAT.")
 
-    return datafile.location, datafile.dataset.investigation.name, datafile.investigation.title
+    return datafile[0].location, datafile[0].dataset.investigation.name, datafile[0].dataset.investigation.title
 
 
 def icat_datafile_query(icat_client, file_name):
