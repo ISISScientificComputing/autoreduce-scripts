@@ -8,44 +8,52 @@
 Functionality to remove a reduction run from the database
 """
 from __future__ import print_function
-import sys
+from typing import List, Tuple, Union
 
 import fire
 from django.db import IntegrityError
 from autoreduce_scripts.manual_operations import setup_django
+from autoreduce_scripts.manual_operations.util import get_run_range
 
 setup_django()
-# pylint:disable=wrong-import-position
-from autoreduce_db.reduction_viewer.models import DataLocation, ReductionRun, ReductionLocation
-from autoreduce_db.instrument.models import RunVariable, Instrument
 
-from autoreduce_scripts.manual_operations.util import get_run_range
+# pylint:disable=wrong-import-position
+from autoreduce_db.reduction_viewer.models import DataLocation, Instrument, ReductionRun, ReductionLocation
 
 
 class ManualRemove:
     """
     Handles removing a run from the database
     """
-    def __init__(self, instrument):
+    def __init__(self, instrument: str):
         """
-        :param instrument: (str) The name of the instrument associated with runs
+        Args:
+            instrument: The name of the instrument associated with runs
         """
         self.database = object()
         self.to_delete = {}
         self.instrument = instrument
 
     def find_batch_run(self, pk: int):
-        """Finds the batch run by primary key (pk) and sets it for deletion"""
+        """
+        Finds the batch run by primary key (pk) and sets it for deletion
+
+        Args:
+            pk: The primary key of the batch run to find
+        """
         # put it into list to have the same behaviour as find_run_versions_in_database
         result = [ReductionRun.objects.get(pk=pk)]
         self.to_delete[pk] = result
         return result
 
-    def find_run_versions_in_database(self, run_number):
+    def find_run_versions_in_database(self, run_number: int):
         """
         Find all run versions in the database that relate to a given instrument and run number
-        :param run_number: (int) The run to search for in the database
-        :return: (QuerySet) The result of the query
+
+        Args:
+            run_number: The run to search for in the database
+        Returns:
+            The result of the query
         """
         instrument_record, _ = Instrument.objects.get_or_create(name=self.instrument)
         result = ReductionRun.objects \
@@ -58,6 +66,9 @@ class ManualRemove:
     def process_results(self, delete_all_versions: bool):
         """
         Process all the results what to do with the run based on the result of database query
+
+        Args:
+            delete_all_versions: Whether to delete all versions of the run or just the selected one
         """
         copy_to_delete = self.to_delete.copy()
         for key, value in copy_to_delete.items():
@@ -71,7 +82,9 @@ class ManualRemove:
     def run_not_found(self, run_number):
         """
         Inform user and remove key from dictionary
-        :param run_number: (int) The run to remove from the dictionary
+
+        Args:
+            run_number: The run to remove from the dictionary
         """
         print('No runs found associated with {} for instrument {}'.format(run_number, self.instrument))
         del self.to_delete[run_number]
@@ -80,7 +93,9 @@ class ManualRemove:
         """
         Ask the user which versions they want to remove
         Update the self.to_delete dictionary by removing unwanted versions
-        :param run_number: (int) The run number with multiple versions
+
+        Args:
+            run_number: The run number with multiple versions
         """
         # Display run_number - title - version for all matching runs
         print("Discovered multiple reduction versions for {}{}:".format(self.instrument, run_number))
@@ -120,14 +135,15 @@ class ManualRemove:
                     # but I am not sure why it works on _most_
                     self.delete_reduction_location(run.id)
                     self.delete_data_location(run.id)
-                    self.delete_variables(run.id)
                     self.delete_reduction_run(run.id)
 
     @staticmethod
     def delete_reduction_location(reduction_run_id):
         """
         Delete a ReductionLocation record from the database
-        :param reduction_run_id: (int) The id of the associated reduction job
+
+        Args:
+            reduction_run_id: The id of the associated reduction job
         """
         ReductionLocation.objects.filter(reduction_run_id=reduction_run_id).delete()
 
@@ -135,41 +151,31 @@ class ManualRemove:
     def delete_data_location(reduction_run_id):
         """
         Delete a DataLocation record from the database
-        :param reduction_run_id: (int) The id of the associated reduction job
+
+        Args:
+            reduction_run_id: The id of the associated reduction job
         """
         DataLocation.objects.filter(reduction_run_id=reduction_run_id).delete()
-
-    def delete_variables(self, reduction_run_id):
-        """
-        Removes all the RunVariable records associated with a given ReductionRun from the database
-        :param reduction_run_id: (int) The id of the associated reduction job
-        """
-        run_variables = self.find_variables_of_reduction(reduction_run_id)
-        for record in run_variables:
-            RunVariable.objects.filter(variable_ptr_id=record.variable_ptr_id).delete()
-
-    @staticmethod
-    def find_variables_of_reduction(reduction_run_id):
-        """
-        Find all the RunVariable records in the database associated with a reduction job
-        :param reduction_run_id: (int) The id of the reduction job to filter by
-        :return: (QuerySet) of the associated RunVariables
-        """
-        return RunVariable.objects.filter(reduction_run_id=reduction_run_id)
 
     @staticmethod
     def delete_reduction_run(reduction_run_id):
         """
         Delete a ReductionRun record from the database
-        :param reduction_run_id: (int) The id of the associated reduction job
+
+        Args:
+            reduction_run_id: The id of the associated reduction job
         """
         ReductionRun.objects.filter(id=reduction_run_id).delete()
 
     @staticmethod
-    def validate_csv_input(user_input):
+    def validate_csv_input(user_input) -> Tuple[bool, List[int]]:
         """
-        checks if a comma separated list was provided
-        :return: (tuple) = (bool - is valid? , list - csv as list (empty list if invalid))
+        Checks if a comma separated list was provided
+
+        Args:
+            user_input: The user input to check
+        Return:
+            Tuple of whether the input was valid and the list of run numbers
         """
         processed_input = []
         if ',' in user_input:
@@ -202,8 +208,13 @@ class ManualRemove:
 def remove(instrument, run_number, delete_all_versions: bool, batch_run: bool):
     """
     Run the remove script for an instrument and run_number
-    :param instrument: (str) Instrument to run on
-    :param run_number: (int) The run number to remove
+
+    Args:
+        instrument: Instrument to run on
+        run_number: The run number to remove
+        delete_all_versions: If true, all versions of the run will be removed
+        batch_run: Changes how to search for the run - normal runs are found by run number,
+                   batch runs are found by their primary key, due to lack of a unique run number
     """
     manual_remove = ManualRemove(instrument)
     if not batch_run:
@@ -218,41 +229,50 @@ def remove(instrument, run_number, delete_all_versions: bool, batch_run: bool):
 def user_input_check(instrument, run_numbers):
     """
     User prompt for boolean value to to assert if user really wants to remove N runs
-    :param instrument (str) Instrument name related to runs user intends to remove
-    :param run_numbers (range object) range of instruments submitted by user
-    :return (bool) True or False to confirm removal of N runs or exit script
-    """
-    valid = {"Y": True, "N": False}
 
+    Args:
+        instrument: Instrument name related to runs user intends to remove
+        run_numbers: Range of instruments submitted by user
+
+    Returns:
+        True or False to confirm removal of N runs or exit script
+    """
     print(f"You are about to remove more than 10 runs from {instrument} \n"
           f"Are you sure you want to remove run numbers: {run_numbers[0]}-{run_numbers[-1]}?")
-    user_input = input("Please enter Y or N: ").upper()
-
-    try:
-        return valid[user_input]
-    except KeyError:
-        print("Invalid input, please enter either 'Y' or 'N' to continue to exit script")
-    return user_input
+    user_input = None
+    while user_input != "Y":
+        user_input = input("Please enter Y: ").upper()
 
 
-def main(instrument: str, first_run: int, last_run: int = None, delete_all_versions=False, no_input=False, batch=False):
+def main(instrument: str,
+         first_run: Union[int, List[int]],
+         last_run: int = None,
+         delete_all_versions=False,
+         no_input=False,
+         batch=False):
     """
     Parse user input and run the script to remove runs for a given instrument
-    :param instrument: (str) Instrument to run on
-    :param first_run: (int) First run to be removed.
-                      If batch=True this should be the primary key of the ReductionRun object
-    :param last_run: (int) Optional last run to be removed
-    :param delete_all_versions: (bool) Deletes all versions for a run without asking
-    :param no_input: (bool) Whether to prompt the user when deleting many runs
+
+    Args:
+        instrument: Instrument to run on
+        first_run: First run to be removed.
+                   If batch=True this should be the primary key of the ReductionRun object
+        last_run: Optional last run to be removed
+        delete_all_versions: Deletes all versions for a run without asking
+        no_input: Whether to prompt the user when deleting many runs
+
+    Returns:
+        List of run numbers that were submitted.
     """
-    run_numbers = get_run_range(first_run, last_run=last_run)
+    if not isinstance(first_run, list):
+        run_numbers = get_run_range(first_run, last_run=last_run)
+    else:
+        run_numbers = first_run
 
     instrument = instrument.upper()
 
     if not no_input and len(run_numbers) >= 10:
-        user_input = user_input_check(instrument, run_numbers)
-        if not user_input:
-            sys.exit()
+        user_input_check(instrument, run_numbers)
 
     for run in run_numbers:
         remove(instrument, run, delete_all_versions, batch)

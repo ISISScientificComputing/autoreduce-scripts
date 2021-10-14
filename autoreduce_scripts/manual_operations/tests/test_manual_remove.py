@@ -10,10 +10,10 @@ Test cases for the manual job submission script
 import builtins
 import socket
 from typing import List, Union
+from unittest import mock
 from unittest.mock import DEFAULT, Mock, call, patch
 
-from autoreduce_db.instrument.models import ReductionRun
-from autoreduce_db.reduction_viewer.models import Experiment, Instrument, Status, DataLocation, RunNumber
+from autoreduce_db.reduction_viewer.models import Experiment, Instrument, ReductionArguments, ReductionScript, Status, DataLocation, RunNumber, ReductionRun
 from django.db import IntegrityError
 from django.test import TestCase
 from django.utils import timezone
@@ -70,6 +70,11 @@ def create_reduction_run_record(experiment, instrument, message, run_version, sc
     """
 
     time_now = timezone.now()
+    script = ReductionScript.objects.create(text=script_text)
+    arguments = ReductionArguments.objects.create(
+        raw=
+        """{"standard_vars":{"variable_str":"value1","variable_int":123,"variable_float":123.321,"variable_listint":[1,2,3],"variable_liststr":["a","b","c"],"variable_none":null,"variable_empty":"","variable_bool":true}}""",
+        instrument=instrument)
     reduction_run = ReductionRun.objects.create(run_version=run_version,
                                                 run_description=message.description,
                                                 hidden_in_failviewer=0,
@@ -80,10 +85,12 @@ def create_reduction_run_record(experiment, instrument, message, run_version, sc
                                                 experiment=experiment,
                                                 instrument=instrument,
                                                 status_id=status.id,
-                                                script=script_text,
                                                 started_by=message.started_by,
                                                 reduction_host=socket.getfqdn(),
-                                                batch_run=isinstance(message.run_number, list))
+                                                batch_run=isinstance(message.run_number, list),
+                                                script=script,
+                                                arguments=arguments,
+                                                run_title="Test title")
     _make_run_numbers(reduction_run, message.run_number)
     _make_data_locations(reduction_run, message.data)
 
@@ -129,16 +136,6 @@ class TestManualRemove(TestCase):
         self.run1 = make_test_run(self.experiment, self.instrument, "1")
         self.run2 = make_test_run(self.experiment, self.instrument, "2")
         self.run3 = make_test_run(self.experiment, self.instrument, "3")
-
-    @staticmethod
-    def _run_variable(reduction_run_id=None, variable_ptr_id=None):
-        """
-        Create a mock object that represents a RunVariable object from the database
-        """
-        mock = Mock()
-        mock.reduction_run_id = reduction_run_id
-        mock.variable_ptr_id = variable_ptr_id
-        return mock
 
     def test_find_run(self):
         """
@@ -335,6 +332,12 @@ class TestManualRemove(TestCase):
         """
         actual = self.manual_remove.validate_csv_input("1,2,3")
         self.assertEqual((True, [1, 2, 3]), actual)
+        actual = self.manual_remove.validate_csv_input("1-3")
+        self.assertEqual((True, [1, 2, 3]), actual)
+
+        # bad input
+        actual = self.manual_remove.validate_csv_input("1-2-1")
+        self.assertEqual((False, []), actual)
 
     def test_validate_csv_invalid(self):
         """
@@ -359,6 +362,21 @@ class TestManualRemove(TestCase):
         mock_find.assert_called_once_with(1)
         mock_process.assert_called_once()
         mock_delete.assert_called_once()
+
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.find_run_versions_in_database")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.process_results")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.delete_records")
+    @patch("autoreduce_scripts.manual_operations.manual_remove.get_run_range")
+    def test_main_with_list(self, mock_get_run_range: Mock, mock_delete: Mock, mock_process: Mock, mock_find: Mock):
+        """
+        Test: The correct control functions are called
+        When: The main() function is called
+        """
+        main(instrument="GEM", first_run=[1, 2, 3])
+        mock_get_run_range.assert_not_called()
+        mock_find.assert_has_calls([mock.call(1), mock.call(2), mock.call(3)])
+        assert mock_process.call_count == 3
+        assert mock_delete.call_count == 3
 
     # pylint:disable=no-self-use
     @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.find_run_versions_in_database")
@@ -451,10 +469,9 @@ class TestManualRemove(TestCase):
     @patch.multiple("autoreduce_scripts.manual_operations.manual_remove.ManualRemove",
                     delete_reduction_location=DEFAULT,
                     delete_data_location=DEFAULT,
-                    delete_variables=DEFAULT,
                     delete_reduction_run=DEFAULT)
     def test_delete_records_integrity_err_reverts_to_manual(self, delete_reduction_location, delete_data_location,
-                                                            delete_variables, delete_reduction_run):
+                                                            delete_reduction_run):
         """
         Test: If the ReducedRun.delete fails with Integrity Error
               the code reverts back to the manual deletion of each table entry
@@ -469,33 +486,7 @@ class TestManualRemove(TestCase):
 
         delete_reduction_location.assert_called_once_with(12)
         delete_data_location.assert_called_once_with(12)
-        delete_variables.assert_called_once_with(12)
         delete_reduction_run.assert_called_once_with(12)
-
-    def test_find_variables(self):
-        """
-        Test: The correct query is run
-        When: Calling find_variables_of_reduction
-        """
-        with patch("autoreduce_scripts.manual_operations.manual_remove.RunVariable") as run_variable:
-            self.manual_remove.find_variables_of_reduction(123)
-            run_variable.objects.filter.assert_called_once_with(reduction_run_id=123)
-
-    @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.find_variables_of_reduction")
-    def test_delete_variables(self, mock_find_vars):
-        """
-        Test: ALL variable records are successfully deleted from the database
-        When: Delete_variables function is called.
-        """
-        mock_run_variables = [self._run_variable(variable_ptr_id=3), self._run_variable(variable_ptr_id=5)]
-        mock_find_vars.return_value = mock_run_variables
-        with patch("autoreduce_scripts.manual_operations.manual_remove.RunVariable") as run_variable:
-            self.manual_remove.delete_variables(20)
-            mock_find_vars.assert_called_once_with(20)
-            run_variable.objects.filter.assert_has_calls(
-                ([call(variable_ptr_id=3),
-                  call().delete(), call(variable_ptr_id=5),
-                  call().delete()]))
 
     def test_user_input_check(self):
         """
@@ -503,10 +494,11 @@ class TestManualRemove(TestCase):
         When: Based on user input if range of runs to remove is larger than 10
         """
         with patch.object(builtins, "input", lambda _: "Y"):
-            self.assertEqual(user_input_check(range(1, 11), "GEM"), True)
+            user_input_check(range(1, 11), "GEM")
 
-        with patch.object(builtins, "input", lambda _: "N"):
-            self.assertEqual(user_input_check(range(1, 11), "GEM"), False)
+        inputs = ["N", "Y"]
+        with patch.object(builtins, "input", lambda _: inputs.pop()):
+            user_input_check(range(1, 11), "GEM")
 
 
 class TestManualRemoveBatchRuns(TestCase):

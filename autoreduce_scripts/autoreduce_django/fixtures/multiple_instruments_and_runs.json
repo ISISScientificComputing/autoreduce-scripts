@@ -1,5 +1,22 @@
 [
     {
+        "model": "reduction_viewer.reductionscript",
+        "pk": 1,
+        "fields": {
+            "text": "def main(input_file, output_dir): print(123)"
+        }
+    },
+    {
+        "model": "reduction_viewer.reductionarguments",
+        "pk": 1,
+        "fields": {
+            "raw": "{\"standard_vars\":{\"variable_str\":\"value1\",\"variable_int\":123,\"variable_float\":123.321,\"variable_listint\":[1,2,3],\"variable_liststr\":[\"a\",\"b\",\"c\"],\"variable_none\":null,\"variable_empty\":\"\",\"variable_bool\":true}}",
+            "start_run": null,
+            "experiment_reference": null,
+            "instrument_id": 1
+        }
+    },
+    {
         "model": "reduction_viewer.reductionrun",
         "pk": 1,
         "fields": {
@@ -15,7 +32,9 @@
             "experiment_id": 1,
             "instrument_id": 1,
             "started_by": -1,
-            "reduction_host": "test-host-123"
+            "reduction_host": "test-host-123",
+            "script_id": 1,
+            "arguments_id": 1
         }
     },
     {
@@ -42,7 +61,9 @@
             "experiment_id": 1,
             "instrument_id": 2,
             "started_by": -1,
-            "reduction_host": "test-host-123"
+            "reduction_host": "test-host-123",
+            "script_id": 1,
+            "arguments_id": 1
         }
     },
     {

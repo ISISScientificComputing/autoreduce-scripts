@@ -7,17 +7,12 @@
 """
 A module for creating and submitting manual submissions to autoreduction
 """
-from __future__ import print_function
-
-import sys
-from typing import List, Tuple, Union
+from typing import Iterable, List, Optional, Tuple, Union
 import logging
 import traceback
 
 import fire
 import h5py
-
-from autoreduce_db.reduction_viewer.models import ReductionRun
 
 from autoreduce_utils.clients.connection_exception import ConnectionException
 from autoreduce_utils.clients.icat_client import ICATClient
@@ -26,73 +21,92 @@ from autoreduce_utils.clients.tools.isisicat_prefix_mapping import get_icat_inst
 from autoreduce_utils.message.message import Message
 
 from autoreduce_scripts.manual_operations.rb_categories import RBCategory
-from autoreduce_scripts.manual_operations.util import get_run_range
+from autoreduce_scripts.manual_operations import setup_django
+
+setup_django()
+
+# pylint:disable=wrong-import-order,wrong-import-position,no-member
+
+from autoreduce_db.reduction_viewer.models import ReductionRun
+
+logger = logging.getLogger(__file__)
 
 
-def submit_run(active_mq_client,
-               rb_number: Union[str, List[str]],
-               instrument: str,
-               data_file_location: Union[str, List[str]],
-               run_number: Union[int, Tuple[int]],
-               reduction_arguments: dict = None,
-               user_id=-1,
-               description=""):
+def submit_run(
+    active_mq_client,
+    rb_number: Union[str, List[str]],
+    instrument: str,
+    data_file_location: Union[str, List[str]],
+    run_number: Union[int, Iterable[int]],
+    run_title: Union[str, List[str]],
+    reduction_script: str = None,
+    reduction_arguments: dict = None,
+    user_id=-1,
+    description="",
+) -> dict:
     """
     Submit a new run for autoreduction
-    :param active_mq_client: The client for access to ActiveMQ
-    :param rb_number: desired experiment rb number
-    :param instrument: name of the instrument
-    :param data_file_location: location of the data file
-    :param run_number: run number fo the experiment
+
+    Args:
+        active_mq_client: The client for access to ActiveMQ
+        rb_number: desired experiment rb number
+        instrument: name of the instrument
+        data_file_location: location of the data file
+        run_number: run number fo the experiment
+
+    Returns:
+        The dict representation of the message that was submitted to ActiveMQ
     """
-    if reduction_arguments is None:
-        reduction_arguments = {}
     if active_mq_client is None:
         raise RuntimeError("ActiveMQ not connected, cannot submit runs")
 
-    message = Message(
-        rb_number=rb_number,
-        instrument=instrument,
-        data=data_file_location,
-        run_number=run_number,
-        facility="ISIS",
-        started_by=user_id,
-        reduction_arguments=reduction_arguments,
-        description=description,
-    )
+    message = Message(rb_number=rb_number,
+                      instrument=instrument,
+                      data=data_file_location,
+                      run_number=run_number,
+                      facility="ISIS",
+                      started_by=user_id,
+                      reduction_script=reduction_script,
+                      reduction_arguments=reduction_arguments,
+                      description=description,
+                      run_title=run_title)
     active_mq_client.send('/queue/DataReady', message, priority=1)
-    print("Submitted run: \r\n", message.serialize(indent=1))
+    logger.info("Submitted run: %s", message.serialize(indent=1))
     return message.to_dict()
 
 
-def get_location_and_rb_from_database(instrument, run_number) -> Union[None, Tuple[str, str]]:
+def get_run_data_from_database(instrument: str, run_number: int) -> Tuple[Optional[str], Optional[str], Optional[str]]:
     """
     Retrieves a run's data-file location and rb_number from the auto-reduction database
-    :param database_client: Client to access auto-reduction database
-    :param instrument: (str) the name of the instrument associated with the run
-    :param run_number: The run number of the data to be retrieved
-    :return: The data file location and rb_number, or None if this information is not
-    in the database
+    Args:
+        database_client: Client to access auto-reduction database
+        instrument: The name of the instrument associated with the run
+        run_number: The run number of the data to be retrieved
+    Returns:
+         The data file location and rb_number, or None if this information is not in the database
     """
     reduction_run_record = ReductionRun.objects.filter(
         instrument__name=instrument, run_numbers__run_number=run_number).order_by('run_version').first()
 
     if not reduction_run_record:
-        return None
+        return None, None, None
 
     data_location = reduction_run_record.data_location.first().file_path
     experiment_number = str(reduction_run_record.experiment.reference_number)
+    run_title = reduction_run_record.run_title
 
-    return data_location, experiment_number
+    return data_location, experiment_number, run_title
 
 
 def icat_datafile_query(icat_client, file_name):
     """
     Search for file name in icat and return it if it exist.
-    :param icat_client: Client to access the ICAT service
-    :param file_name: file name to search for in icat
-    :return: icat datafile entry if found
-    :raises SystemExit: If icat_client not connected
+
+    Args:
+        icat_client: Client to access the ICAT service
+        file_name: file name to search for in icat
+    Returns:
+        ICAT datafile entry if found
     """
     if icat_client is None:
         raise RuntimeError("ICAT not connected")
@@ -101,16 +115,19 @@ def icat_datafile_query(icat_client, file_name):
                                      "' INCLUDE df.dataset AS ds, ds.investigation")
 
 
-def get_location_and_rb_from_icat(instrument, run_number, file_ext) -> Tuple[str, str]:
+def get_run_data_from_icat(instrument, run_number, file_ext) -> Tuple[str, str, str]:
     """
     Retrieves a run's data-file location and rb_number from ICAT.
     Attempts first with the default file name, then with prepended zeroes.
-    :param icat_client: Client to access the ICAT service
-    :param instrument: The name of instrument
-    :param run_number: The run number to be processed
-    :param file_ext: The expected file extension
-    :return: The data file location and rb_number
-    :raises SystemExit: If the given run information cannot return a location and rb_number
+
+    Args:
+        icat_client: Client to access the ICAT service
+        instrument: The name of instrument
+        run_number: The run number to be processed
+        file_ext: The expected file extension
+
+    Returns:
+        The data file location, rb_number (experiment reference) and run_title
     """
     icat_client = login_icat()
 
@@ -120,29 +137,32 @@ def get_location_and_rb_from_icat(instrument, run_number, file_ext) -> Tuple[str
     datafile = icat_datafile_query(icat_client, file_name)
 
     if not datafile:
-        print("Cannot find datafile '" + file_name + "' in ICAT. Will try with zeros in front of run number.")
+        logger.info("Cannot find datafile '%s' in ICAT. Will try with zeros in front of run number.", file_name)
         file_name = f"{icat_instrument_prefix}{str(run_number).zfill(8)}.{file_ext}"
         datafile = icat_datafile_query(icat_client, file_name)
 
     # look for file-name assuming file-name uses full instrument name
     if not datafile:
-        print("Cannot find datafile '" + file_name + "' in ICAT. Will try using full instrument name.")
+        logger.info("Cannot find datafile '%s' in ICAT. Will try using full instrument name.", file_name)
         file_name = f"{instrument}{str(run_number).zfill(5)}.{file_ext}"
         datafile = icat_datafile_query(icat_client, file_name)
 
     if not datafile:
-        print("Cannot find datafile '" + file_name + "' in ICAT. Will try with zeros in front of run number.")
+        logger.info("Cannot find datafile '%s' in ICAT. Will try with zeros in front of run number.", file_name)
         file_name = f"{instrument}{str(run_number).zfill(8)}.{file_ext}"
         datafile = icat_datafile_query(icat_client, file_name)
 
     if not datafile:
-        raise RuntimeError("Cannot find datafile '" + file_name + "' in ICAT.")
-    return datafile[0].location, datafile[0].dataset.investigation.name
+        raise RuntimeError(f"Cannot find datafile '{file_name}' in ICAT.")
+    return datafile[0].location, datafile[0].dataset.investigation.name, datafile[0].dataset.investigation.title
 
 
 def overwrite_icat_calibration_rb_num(location: str, rb_num: Union[str, int]) -> str:
-    """Checks if the RB number provided has been overwritten by ICAT as a calibration run.
-    If so it returns the real RB number read from the datafile.
+    """
+    Checks if the RB number provided has been overwritten by ICAT as a calibration run.
+
+    Returns:
+        The real RB number read from the datafile.
     """
     rb_num = str(rb_num)
 
@@ -152,38 +172,42 @@ def overwrite_icat_calibration_rb_num(location: str, rb_num: Union[str, int]) ->
     return rb_num
 
 
-def get_location_and_rb(instrument, run_number, file_ext):
+def get_run_data(instrument: str, run_number: Union[str, int], file_ext: str) -> Tuple[str, str, str]:
     """
     Retrieves a run's data-file location and rb_number from the auto-reduction database,
     or ICAT (if it is not in the database)
-    :param database_client: Client to access auto-reduction database
-    :param icat_client: Client to access the ICAT service
-    :param instrument: The name of instrument
-    :param run_number: The run number to be processed
-    :param file_ext: The expected file extension
-    :return: The data file location and rb_number
-    :raises SystemExit: If the given run information cannot return a location and rb_number
+
+    Args:
+        instrument: The name of instrument
+        run_number: The run number to be processed
+        file_ext: The expected file extension
+
+    Returns:
+        The data file location and rb_number
     """
     try:
-        run_number = int(run_number)
+        parsed_run_number = int(run_number)
     except ValueError:
-        print(f"Cannot cast run_number as an integer. Run number given: '{run_number}'. Exiting...")
-        sys.exit(1)
+        logger.error("Cannot cast run_number as an integer. Run number given: '%s'. Exiting...", run_number)
+        raise
 
-    result = get_location_and_rb_from_database(instrument, run_number)
-    if result:
-        return result
-    print(f"Cannot find datafile for run_number {run_number} in Auto-reduction database. " f"Will try ICAT...")
+    data_location, experiment_number, run_title = get_run_data_from_database(instrument, parsed_run_number)
+    if data_location and experiment_number and run_title:
+        return data_location, experiment_number, run_title
+    logger.info("Cannot find datafile for run_number %s in Auto-reduction database. "
+                "Will try ICAT...", parsed_run_number)
 
-    location, rb_num = get_location_and_rb_from_icat(instrument, run_number, file_ext)
+    location, rb_num, run_title = get_run_data_from_icat(instrument, parsed_run_number, file_ext)
     rb_num = overwrite_icat_calibration_rb_num(location, rb_num)
-    return location, rb_num
+    return location, rb_num, run_title
 
 
-def login_icat():
+def login_icat() -> ICATClient:
     """
     Log into the ICATClient
-    :return: The client connected, or None if failed
+
+    Returns:
+        The client connected, or None if failed
     """
     print("Logging into ICAT")
     icat_client = ICATClient()
@@ -195,10 +219,12 @@ def login_icat():
     return icat_client
 
 
-def login_queue():
+def login_queue() -> QueueClient:
     """
     Log into the QueueClient
-    :return: The client connected, or raise exception
+
+    Returns:
+        The client connected, or raise exception
     """
     print("Logging into ActiveMQ")
     activemq_client = QueueClient()
@@ -211,15 +237,24 @@ def login_queue():
     return activemq_client
 
 
-def _read_rb_from_datafile(location: str):
+def _read_rb_from_datafile(location: str) -> str:
     """
     Reads the RB number from the location of the datafile
+
+    Args:
+        location: The location of the datafile
+
+    Returns:
+        The RB number read from the datafile
     """
-    def windows_to_linux_path(path):
+    def windows_to_linux_path(path) -> str:
         """ Convert windows path to linux path.
-        :param path:
-        :param temp_root_directory:
-        :return: (str) linux formatted file path
+
+        Args:
+            path: The path that will be converted
+
+        Returns:
+            Linux formatted file path
         """
         # '\\isis\inst$\' maps to '/isis/'
         path = path.replace('\\\\isis\\inst$\\', '/isis/')
@@ -268,16 +303,33 @@ def categorize_rb_number(rb_num: str):
         return RBCategory.UNCATEGORIZED
 
 
-def main(instrument, first_run, last_run=None):
+def main(instrument: str,
+         runs: Union[int, Iterable[int]],
+         reduction_script: Optional[str] = None,
+         reduction_arguments: Optional[dict] = None,
+         user_id=-1,
+         description="") -> list:
     """
     Manually submit an instrument run from reduction.
-    All run number between `first_run` and `last_run` are submitted
-    :param instrument: (string) The name of the instrument to submit a run for
-    :param first_run: (int) The first run to be submitted
-    :param last_run: (int) The last run to be submitted
+    All run number between `first_run` and `last_run` are submitted.
+
+    Args:
+        instrument: The name of the instrument to submit a run for
+        runs: The run or runs to be submitted. If a list then all the run numbers in it will be submitted
+        reduction_script: The reduction script to be used. If not provided,
+                          the default reduction script for the instrument will be used.
+                          Currently unused as the queue processor will ignore the value
+                          and always use the current reduce.py.
+                          Issue tracking this https://autoreduce.atlassian.net/browse/AR-1056
+        reduction_arguments: The arguments to be passed to the reduction script,
+                                if None the reduce_vars.py file will be loaded
+        user_id: The user ID that submitted the request. Using this script directly
+                 and the run detection use -1, which is mapped to "Autoreduction service"
+        description: A custom description of the run, if provided by the user
+
+    Returns:
+        A list of run numbers that were submitted.
     """
-    logger = logging.getLogger(__file__)
-    run_numbers = get_run_range(first_run, last_run=last_run)
 
     instrument = instrument.upper()
 
@@ -285,8 +337,14 @@ def main(instrument, first_run, last_run=None):
 
     submitted_runs = []
 
-    for run in run_numbers:
-        location, rb_num = get_location_and_rb(instrument, run, "nxs")
+    if not isinstance(runs, Iterable):
+        runs = [runs]
+
+    for run_number in runs:
+        location, rb_num, run_title = get_run_data(instrument, run_number, "nxs")
+        if not location and not rb_num:
+            logger.error("Unable to find RB number and location for %s%s", instrument, run_number)
+            continue
         try:
             category = categorize_rb_number(rb_num)
             logger.info("Run is in category %s", category)
@@ -295,10 +353,17 @@ def main(instrument, first_run, last_run=None):
                            traceback.format_exc())
             continue
 
-        if location and rb_num is not None:
-            submitted_runs.append(submit_run(activemq_client, rb_num, instrument, location, run))
-        else:
-            logger.error("Unable to find RB number and location for %s%s", instrument, run)
+        submitted_runs.append(
+            submit_run(activemq_client,
+                       rb_num,
+                       instrument,
+                       location,
+                       run_number,
+                       run_title=run_title,
+                       reduction_script=reduction_script,
+                       reduction_arguments=reduction_arguments,
+                       user_id=user_id,
+                       description=description))
 
     return submitted_runs
 

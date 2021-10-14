@@ -1,4 +1,5 @@
 import logging
+from typing import Iterable, Optional
 
 import fire
 
@@ -7,7 +8,7 @@ from autoreduce_scripts.manual_operations import setup_django
 setup_django()
 
 # pylint:disable=wrong-import-position
-from autoreduce_scripts.manual_operations.manual_submission import get_location_and_rb, login_queue, submit_run
+from autoreduce_scripts.manual_operations.manual_submission import get_run_data, login_queue, submit_run
 
 
 def all_equal(iterator):
@@ -20,7 +21,12 @@ def all_equal(iterator):
     return all(first == x for x in iterator)
 
 
-def main(instrument, runs: tuple, reduction_arguments: dict, user_id: int, description: str):
+def main(instrument,
+         runs: Iterable[int],
+         reduction_script: Optional[str] = None,
+         reduction_arguments: Optional[dict] = None,
+         user_id: int = -1,
+         description: str = ""):
     """Submits the runs for this instrument as a single reduction"""
 
     logger = logging.getLogger(__file__)
@@ -28,15 +34,24 @@ def main(instrument, runs: tuple, reduction_arguments: dict, user_id: int, descr
     instrument = instrument.upper()
 
     activemq_client = login_queue()
-    locations, rb_numbers = [], []
+    locations, rb_numbers, titles = [], [], []
     for run in runs:
-        location, rb_num = get_location_and_rb(instrument, run, "nxs")
+        location, rb_num, run_title = get_run_data(instrument, run, "nxs")
         locations.append(location)
         rb_numbers.append(rb_num)
+        titles.append(run_title)
     if not all_equal(rb_numbers):
         raise RuntimeError("Submitted runs have mismatching RB numbers")
-    return submit_run(activemq_client, rb_numbers[0], instrument, locations, runs, reduction_arguments, user_id,
-                      description)
+    return submit_run(activemq_client,
+                      rb_numbers[0],
+                      instrument,
+                      locations,
+                      runs,
+                      run_title=titles,
+                      reduction_script=reduction_script,
+                      reduction_arguments=reduction_arguments,
+                      user_id=user_id,
+                      description=description)
 
 
 def fire_entrypoint():
