@@ -149,9 +149,9 @@ class TestManualSubmission(TestCase):
         When: get_location_and_rb_from_icat is called and the data is present in ICAT
         """
         login_icat.return_value.execute_query.return_value = self.make_query_return_object("icat")
-        stuff = ms.get_run_data_from_icat(**self.run_data_args)
+        run_data = ms.get_run_data_from_icat(**self.run_data_args)
         login_icat.return_value.execute_query.assert_called_once()
-        self.assertEqual(stuff, self.valid_return)
+        self.assertEqual(run_data, self.valid_return)
 
     @patch('autoreduce_scripts.manual_operations.manual_submission.login_icat')
     @patch('autoreduce_scripts.manual_operations.manual_submission.get_icat_instrument_prefix', return_value='MAR')
