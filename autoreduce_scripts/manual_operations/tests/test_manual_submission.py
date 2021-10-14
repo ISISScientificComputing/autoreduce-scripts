@@ -58,13 +58,6 @@ class TestManualSubmission(TestCase):
 
     def setUp(self):
         """ Creates test variables used throughout the test suite """
-        self.sub_run_args = {
-            "active_mq_client": MagicMock(name="QueueClient"),
-            "rb_number": -1,
-            "instrument": "instrument",
-            "data_file_location": "data_file_location",
-            "run_number": -1
-        }
         self.valid_return = ("location", "rb", "Test title")
 
         self.experiment, self.instrument = create_experiment_and_instrument()
@@ -231,22 +224,32 @@ class TestManualSubmission(TestCase):
         Test: A given run is submitted to the DataReady queue
         When: submit_run is called with valid arguments
         """
-        self.sub_run_args["reduction_arguments"] = {"test_int": 123, "test_list": [1, 2, 3]}
-        self.sub_run_args["user_id"] = 15151
-        self.sub_run_args["description"] = "test_description"
-        self.sub_run_args["run_title"] = "test run title"
-        ms.submit_run(**self.sub_run_args)
-        message = Message(rb_number=self.sub_run_args["rb_number"],
-                          instrument=self.sub_run_args["instrument"],
-                          data=self.sub_run_args["data_file_location"],
-                          run_number=self.sub_run_args["run_number"],
+        sub_run_args = {
+            "active_mq_client": MagicMock(name="QueueClient"),
+            "rb_number": -1,
+            "instrument": "instrument",
+            "data_file_location": "data_file_location",
+            "run_number": -1,
+            "reduction_arguments": {
+                "test_int": 123,
+                "test_list": [1, 2, 3]
+            },
+            "user_id": 15151,
+            "description": "test_description",
+            "run_title": "test run title"
+        }
+        ms.submit_run(**sub_run_args)
+        message = Message(rb_number=sub_run_args["rb_number"],
+                          instrument=sub_run_args["instrument"],
+                          data=sub_run_args["data_file_location"],
+                          run_number=sub_run_args["run_number"],
                           facility="ISIS",
-                          started_by=self.sub_run_args["user_id"],
-                          reduction_arguments=self.sub_run_args["reduction_arguments"],
-                          description=self.sub_run_args["description"],
-                          run_title=self.sub_run_args["run_title"])
+                          started_by=sub_run_args["user_id"],
+                          reduction_arguments=sub_run_args["reduction_arguments"],
+                          description=sub_run_args["description"],
+                          run_title=sub_run_args["run_title"])
 
-        self.sub_run_args["active_mq_client"].send.assert_called_with('/queue/DataReady', message, priority=1)
+        sub_run_args["active_mq_client"].send.assert_called_with('/queue/DataReady', message, priority=1)
 
     @patch('icat.Client')
     @patch('autoreduce_scripts.manual_operations.manual_submission.ICATClient.connect')
