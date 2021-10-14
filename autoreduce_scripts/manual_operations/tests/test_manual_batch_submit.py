@@ -19,7 +19,7 @@ class TestManualBatchSubmission(TestCase):
     @patch('autoreduce_scripts.manual_operations.manual_batch_submit.login_queue')
     @patch('autoreduce_scripts.manual_operations.manual_batch_submit.submit_run')
     @patch('autoreduce_scripts.manual_operations.manual_batch_submit.get_run_data',
-           return_value=("test_location", "test_rb"))
+           return_value=("test_location", "test_rb", "test_title"))
     def test_main(self, mock_get_run_data: Mock, mock_submit_run: Mock, mock_login_queue: Mock):
         """Tests the main function of the manual batch submission"""
         runs = [12345, 12346]
@@ -39,6 +39,7 @@ class TestManualBatchSubmission(TestCase):
                                                 "test_rb",
                                                 self.instrument.name, ["test_location", "test_location"],
                                                 runs,
+                                                run_title=["test_title", "test_title"],
                                                 reduction_script=mock_reduction_script,
                                                 reduction_arguments=mock_reduction_arguments,
                                                 user_id=mock_user_id,
@@ -47,7 +48,7 @@ class TestManualBatchSubmission(TestCase):
     @patch('autoreduce_scripts.manual_operations.manual_batch_submit.login_queue')
     @patch('autoreduce_scripts.manual_operations.manual_batch_submit.submit_run')
     @patch('autoreduce_scripts.manual_operations.manual_batch_submit.get_run_data',
-           side_effect=[("test_location", "test_rb"), ("test_location_2", "test_rb_2")])
+           side_effect=[("test_location", "test_rb", "test_title"), ("test_location_2", "test_rb_2", "test_title_2")])
     def test_main_bad_rb(self, mock_get_run_data: Mock, mock_submit_run: Mock, mock_login_queue: Mock):
         """Tests the main function of the manual batch submission"""
         runs = [12345, 12346]
