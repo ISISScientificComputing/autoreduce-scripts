@@ -34,11 +34,12 @@ def main(instrument,
     instrument = instrument.upper()
 
     activemq_client = login_queue()
-    locations, rb_numbers = [], []
+    locations, rb_numbers, titles = [], [], []
     for run in runs:
-        location, rb_num = get_run_data(instrument, run, "nxs")
+        location, rb_num, run_title = get_run_data(instrument, run, "nxs")
         locations.append(location)
         rb_numbers.append(rb_num)
+        titles.append(run_title)
     if not all_equal(rb_numbers):
         raise RuntimeError("Submitted runs have mismatching RB numbers")
     return submit_run(activemq_client,
@@ -46,6 +47,7 @@ def main(instrument,
                       instrument,
                       locations,
                       runs,
+                      run_title=titles,
                       reduction_script=reduction_script,
                       reduction_arguments=reduction_arguments,
                       user_id=user_id,

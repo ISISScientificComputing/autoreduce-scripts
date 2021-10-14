@@ -58,7 +58,6 @@ class TestManualSubmission(TestCase):
 
     def setUp(self):
         """ Creates test variables used throughout the test suite """
-        self.loc_and_rb_args = {"instrument": "instrument", "run_number": -1, "file_ext": "file_ext"}
         self.sub_run_args = {
             "active_mq_client": MagicMock(name="QueueClient"),
             "rb_number": -1,
@@ -66,7 +65,7 @@ class TestManualSubmission(TestCase):
             "data_file_location": "data_file_location",
             "run_number": -1
         }
-        self.valid_return = ("location", "rb")
+        self.valid_return = ("location", "rb", "Test title")
 
         self.experiment, self.instrument = create_experiment_and_instrument()
 
@@ -88,34 +87,39 @@ class TestManualSubmission(TestCase):
         if return_from == "icat":
             ret_obj[0].location = self.valid_return[0]
             ret_obj[0].dataset.investigation.name = self.valid_return[1]
+            ret_obj[0].dataset.investigation.title = self.valid_return[2]
         elif return_from == "db_location":
             ret_obj[0].file_path = self.valid_return[0]
         elif return_from == "db_rb":
             ret_obj[0].reference_number = self.valid_return[1]
         return ret_obj
 
-    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data_from_database', return_value=None)
-    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data_from_icat', return_value=(None, None))
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data_from_database',
+           return_value=(None, None, None))
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data_from_icat',
+           return_value=(None, None, None))
     def test_get_checks_database_then_icat(self, mock_from_icat, mock_from_database):
         """
         Test: Data for a given run is searched for in the database before calling ICAT
         When: get_run_data is called for a datafile which isn't in the database
         """
-        ms.get_run_data(**self.loc_and_rb_args)
+        ms.get_run_data("instrument", -1, "file_ext")
         mock_from_database.assert_called_once()
         mock_from_icat.assert_called_once()
 
     @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data_from_database',
-           return_value=("string", 1234567))
-    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data_from_icat', return_value=(None, None))
+           return_value=("string", 1234567, "some title"))
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data_from_icat',
+           return_value=(None, None, None))
     def test_get_database_hit_skips_icat(self, mock_from_icat, mock_from_database):
         """
         Test: Data for a given run is searched for in the database before calling ICAT
         When: get_run_data is called for a datafile which isn't in the database
         """
-        result = ms.get_run_data(**self.loc_and_rb_args)
+        result = ms.get_run_data("instrument", -1, "file_ext")
         assert result[0] == "string"
         assert result[1] == 1234567
+        assert result[2] == "some title"
         mock_from_database.assert_called_once()
         mock_from_icat.assert_not_called()
 
@@ -124,7 +128,9 @@ class TestManualSubmission(TestCase):
         Test: None is returned
         When: get_run_data_from_database can't find a ReductionRun record
         """
-        self.assertIsNone(ms.get_run_data_from_database('GEM', 123))
+        result = ms.get_run_data_from_database('GEM', 1234567)
+        for result_item in result:
+            assert result_item is None
 
     def test_get_from_database(self):
         """
@@ -134,7 +140,7 @@ class TestManualSubmission(TestCase):
         """
         actual = ms.get_run_data_from_database('ARMI', 101)
         # Values from testing database
-        expected = (FakeMessage().data, '1231231')
+        expected = (FakeMessage().data, '1231231', 'Test title')
         self.assertEqual(expected, actual)
 
     @patch('autoreduce_scripts.manual_operations.manual_submission.login_icat')
@@ -145,9 +151,9 @@ class TestManualSubmission(TestCase):
         When: get_run_data_from_icat is called and the data is present in ICAT
         """
         login_icat.return_value.execute_query.return_value = self.make_query_return_object("icat")
-        location_and_rb = ms.get_run_data_from_icat(**self.loc_and_rb_args)
+        loc, rb_num, title = ms.get_run_data_from_icat("instrument", -1, "file_ext")
         login_icat.return_value.execute_query.assert_called_once()
-        self.assertEqual(location_and_rb, self.valid_return)
+        self.assertEqual((loc, rb_num, title), self.valid_return)
 
     @patch('autoreduce_scripts.manual_operations.manual_submission.login_icat')
     @patch('autoreduce_scripts.manual_operations.manual_submission.get_icat_instrument_prefix', return_value='MAR')
@@ -160,12 +166,14 @@ class TestManualSubmission(TestCase):
         data_file = Mock()
         data_file.location = 'location'
         data_file.dataset.investigation.name = 'inv_name'
+        data_file.dataset.investigation.title = 'inv_title'
         # Add return here to ensure we do NOT try fall through cases
         # and do NOT have to deal with multiple calls to mock
         icat_client.execute_query.return_value = [data_file]
-        actual_loc, actual_inv_name = ms.get_run_data_from_icat('MARI', '123', 'nxs')
+        actual_loc, actual_inv_name, actual_inv_title = ms.get_run_data_from_icat('MARI', '123', 'nxs')
         self.assertEqual('location', actual_loc)
         self.assertEqual('inv_name', actual_inv_name)
+        self.assertEqual('inv_title', actual_inv_title)
         login_icat.assert_called_once()
         icat_client.execute_query.assert_called_once_with("SELECT df FROM Datafile df WHERE"
                                                           " df.name = 'MAR00123.nxs' INCLUDE"
@@ -184,7 +192,7 @@ class TestManualSubmission(TestCase):
         # icat returns: not found a number of times before file found
         login_icat.return_value.execute_query.side_effect = [None, None, None, self.make_query_return_object("icat")]
         # call the method to test
-        location_and_rb = ms.get_run_data_from_icat(**self.loc_and_rb_args)
+        location_and_rb = ms.get_run_data_from_icat("instrument", -1, "file_ext")
         # how many times have icat been called
         self.assertEqual(login_icat.return_value.execute_query.call_count, 4)
         # check returned format is OK
@@ -204,7 +212,7 @@ class TestManualSubmission(TestCase):
         login_icat.return_value.execute_query.side_effect = [None, None, None, None]
         # call the method to test
         with self.assertRaises(RuntimeError):
-            ms.get_run_data_from_icat(**self.loc_and_rb_args)
+            ms.get_run_data_from_icat("instrument", -1, "file_ext")
 
     @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data_from_database')
     @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data_from_icat')
@@ -213,9 +221,8 @@ class TestManualSubmission(TestCase):
         Test: A SystemExit is raised and neither the database nor ICAT are checked for data
         When: get_run_data is called with a run_number which cannot be cast to int
         """
-        self.loc_and_rb_args["run_number"] = "invalid run number"
         with self.assertRaises(ValueError):
-            ms.get_run_data(**self.loc_and_rb_args)
+            ms.get_run_data("instrument", "invalid run number", "file_ext")
         mock_from_icat.assert_not_called()
         mock_from_database.assert_not_called()
 
@@ -227,6 +234,7 @@ class TestManualSubmission(TestCase):
         self.sub_run_args["reduction_arguments"] = {"test_int": 123, "test_list": [1, 2, 3]}
         self.sub_run_args["user_id"] = 15151
         self.sub_run_args["description"] = "test_description"
+        self.sub_run_args["run_title"] = "test run title"
         ms.submit_run(**self.sub_run_args)
         message = Message(rb_number=self.sub_run_args["rb_number"],
                           instrument=self.sub_run_args["instrument"],
@@ -235,7 +243,8 @@ class TestManualSubmission(TestCase):
                           facility="ISIS",
                           started_by=self.sub_run_args["user_id"],
                           reduction_arguments=self.sub_run_args["reduction_arguments"],
-                          description=self.sub_run_args["description"])
+                          description=self.sub_run_args["description"],
+                          run_title=self.sub_run_args["run_title"])
 
         self.sub_run_args["active_mq_client"].send.assert_called_with('/queue/DataReady', message, priority=1)
 
@@ -291,14 +300,15 @@ class TestManualSubmission(TestCase):
         """
         with self.assertRaises(RuntimeError):
             ms.submit_run(active_mq_client=None,
-                          rb_number=None,
-                          instrument=None,
-                          data_file_location=None,
-                          run_number=None)
+                          rb_number="123",
+                          instrument="instr",
+                          data_file_location="loc",
+                          run_number=123,
+                          run_title="")
 
     @patch('autoreduce_scripts.manual_operations.manual_submission.login_queue')
     @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data',
-           return_value=('test/file/path', "2222"))
+           return_value=('test/file/path', "2222", "some title"))
     @patch('autoreduce_scripts.manual_operations.manual_submission.submit_run')
     def test_main_valid(self, mock_submit, mock_get_loc, mock_queue):
         """
@@ -330,13 +340,14 @@ class TestManualSubmission(TestCase):
                                             'TEST',
                                             'test/file/path',
                                             1111,
+                                            run_title="some title",
                                             reduction_script=mock_reduction_script,
                                             reduction_arguments=mock_reduction_args,
                                             user_id=mock_userid,
                                             description=mock_description)
 
     @patch('autoreduce_scripts.manual_operations.manual_submission.login_queue')
-    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data', return_value=(None, None))
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data', return_value=(None, None, None))
     @patch('autoreduce_scripts.manual_operations.manual_submission.submit_run')
     def test_main_not_found_in_icat(self, mock_submit: Mock, mock_get_loc: Mock, mock_queue: Mock):
         """

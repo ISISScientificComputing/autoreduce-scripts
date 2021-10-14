@@ -89,7 +89,8 @@ def create_reduction_run_record(experiment, instrument, message, run_version, sc
                                                 reduction_host=socket.getfqdn(),
                                                 batch_run=isinstance(message.run_number, list),
                                                 script=script,
-                                                arguments=arguments)
+                                                arguments=arguments,
+                                                run_title="Test title")
     _make_run_numbers(reduction_run, message.run_number)
     _make_data_locations(reduction_run, message.data)
 
