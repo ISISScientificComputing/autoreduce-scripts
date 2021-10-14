@@ -94,29 +94,26 @@ class TestManualSubmission(TestCase):
             ret_obj[0].reference_number = self.valid_return[1]
         return ret_obj
 
-    @patch('autoreduce_scripts.manual_operations.manual_submission.get_location_and_rb_from_database',
-           return_value=None)
-    @patch('autoreduce_scripts.manual_operations.manual_submission.get_location_and_rb_from_icat',
-           return_value=(None, None))
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data_from_database', return_value=None)
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data_from_icat', return_value=(None, None))
     def test_get_checks_database_then_icat(self, mock_from_icat, mock_from_database):
         """
         Test: Data for a given run is searched for in the database before calling ICAT
-        When: get_location_and_rb is called for a datafile which isn't in the database
+        When: get_run_data is called for a datafile which isn't in the database
         """
-        ms.get_location_and_rb(**self.loc_and_rb_args)
+        ms.get_run_data(**self.loc_and_rb_args)
         mock_from_database.assert_called_once()
         mock_from_icat.assert_called_once()
 
-    @patch('autoreduce_scripts.manual_operations.manual_submission.get_location_and_rb_from_database',
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data_from_database',
            return_value=("string", 1234567))
-    @patch('autoreduce_scripts.manual_operations.manual_submission.get_location_and_rb_from_icat',
-           return_value=(None, None))
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data_from_icat', return_value=(None, None))
     def test_get_database_hit_skips_icat(self, mock_from_icat, mock_from_database):
         """
         Test: Data for a given run is searched for in the database before calling ICAT
-        When: get_location_and_rb is called for a datafile which isn't in the database
+        When: get_run_data is called for a datafile which isn't in the database
         """
-        result = ms.get_location_and_rb(**self.loc_and_rb_args)
+        result = ms.get_run_data(**self.loc_and_rb_args)
         assert result[0] == "string"
         assert result[1] == 1234567
         mock_from_database.assert_called_once()
@@ -125,17 +122,17 @@ class TestManualSubmission(TestCase):
     def test_get_from_database_no_run(self):
         """
         Test: None is returned
-        When: get_location_and_rb_from_database can't find a ReductionRun record
+        When: get_run_data_from_database can't find a ReductionRun record
         """
-        self.assertIsNone(ms.get_location_and_rb_from_database('GEM', 123))
+        self.assertIsNone(ms.get_run_data_from_database('GEM', 123))
 
     def test_get_from_database(self):
         """
         Test: Data for a given run can be retrieved from the database in the expected format
-        When: get_location_and_rb_from_database is called and the data is present
+        When: get_run_data_from_database is called and the data is present
         in the database
         """
-        actual = ms.get_location_and_rb_from_database('ARMI', 101)
+        actual = ms.get_run_data_from_database('ARMI', 101)
         # Values from testing database
         expected = (FakeMessage().data, '1231231')
         self.assertEqual(expected, actual)
@@ -145,10 +142,10 @@ class TestManualSubmission(TestCase):
     def test_get_from_icat_when_file_exists_without_zeroes(self, _, login_icat: Mock):
         """
         Test: Data for a given run can be retrieved from ICAT in the expected format
-        When: get_location_and_rb_from_icat is called and the data is present in ICAT
+        When: get_run_data_from_icat is called and the data is present in ICAT
         """
         login_icat.return_value.execute_query.return_value = self.make_query_return_object("icat")
-        location_and_rb = ms.get_location_and_rb_from_icat(**self.loc_and_rb_args)
+        location_and_rb = ms.get_run_data_from_icat(**self.loc_and_rb_args)
         login_icat.return_value.execute_query.assert_called_once()
         self.assertEqual(location_and_rb, self.valid_return)
 
@@ -157,7 +154,7 @@ class TestManualSubmission(TestCase):
     def test_icat_uses_prefix_mapper(self, _, login_icat: Mock):
         """
         Test: The instrument shorthand name is used
-        When: querying ICAT with function get_location_and_rb_from_icat
+        When: querying ICAT with function get_run_data_from_icat
         """
         icat_client = login_icat.return_value
         data_file = Mock()
@@ -166,7 +163,7 @@ class TestManualSubmission(TestCase):
         # Add return here to ensure we do NOT try fall through cases
         # and do NOT have to deal with multiple calls to mock
         icat_client.execute_query.return_value = [data_file]
-        actual_loc, actual_inv_name = ms.get_location_and_rb_from_icat('MARI', '123', 'nxs')
+        actual_loc, actual_inv_name = ms.get_run_data_from_icat('MARI', '123', 'nxs')
         self.assertEqual('location', actual_loc)
         self.assertEqual('inv_name', actual_inv_name)
         login_icat.assert_called_once()
@@ -176,18 +173,18 @@ class TestManualSubmission(TestCase):
 
     @patch('autoreduce_scripts.manual_operations.manual_submission.login_icat')
     @patch('autoreduce_scripts.manual_operations.manual_submission.get_icat_instrument_prefix')
-    def test_get_location_and_rb_from_icat_when_first_file_not_found(self, _, login_icat: Mock):
+    def test_get_run_data_from_icat_when_first_file_not_found(self, _, login_icat: Mock):
         """
-        Test: that get_location_and_rb_from_icat can handle a number of failed ICAT
+        Test: that get_run_data_from_icat can handle a number of failed ICAT
         data file search attempts before it returns valid data file and check that
         expected format is then still returned.
-        When: get_location_and_rb_from_icat is called and the file is initially not
+        When: get_run_data_from_icat is called and the file is initially not
         found in ICAT.
         """
         # icat returns: not found a number of times before file found
         login_icat.return_value.execute_query.side_effect = [None, None, None, self.make_query_return_object("icat")]
         # call the method to test
-        location_and_rb = ms.get_location_and_rb_from_icat(**self.loc_and_rb_args)
+        location_and_rb = ms.get_run_data_from_icat(**self.loc_and_rb_args)
         # how many times have icat been called
         self.assertEqual(login_icat.return_value.execute_query.call_count, 4)
         # check returned format is OK
@@ -195,30 +192,30 @@ class TestManualSubmission(TestCase):
 
     @patch('autoreduce_scripts.manual_operations.manual_submission.login_icat')
     @patch('autoreduce_scripts.manual_operations.manual_submission.get_icat_instrument_prefix')
-    def test_get_location_and_rb_from_icat_raises_runtimeerror(self, _, login_icat: Mock):
+    def test_get_run_data_from_icat_raises_runtimeerror(self, _, login_icat: Mock):
         """
-        Test: that get_location_and_rb_from_icat can handle a number of failed ICAT
+        Test: that get_run_data_from_icat can handle a number of failed ICAT
         data file search attempts before it returns valid data file and check that
         expected format is then still returned.
-        When: get_location_and_rb_from_icat is called and the file is initially not
+        When: get_run_data_from_icat is called and the file is initially not
         found in ICAT.
         """
         # icat returns: not found a number of times before file found
         login_icat.return_value.execute_query.side_effect = [None, None, None, None]
         # call the method to test
         with self.assertRaises(RuntimeError):
-            ms.get_location_and_rb_from_icat(**self.loc_and_rb_args)
+            ms.get_run_data_from_icat(**self.loc_and_rb_args)
 
-    @patch('autoreduce_scripts.manual_operations.manual_submission.get_location_and_rb_from_database')
-    @patch('autoreduce_scripts.manual_operations.manual_submission.get_location_and_rb_from_icat')
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data_from_database')
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data_from_icat')
     def test_get_when_run_number_not_int(self, mock_from_icat, mock_from_database):
         """
         Test: A SystemExit is raised and neither the database nor ICAT are checked for data
-        When: get_location_and_rb is called with a run_number which cannot be cast to int
+        When: get_run_data is called with a run_number which cannot be cast to int
         """
         self.loc_and_rb_args["run_number"] = "invalid run number"
         with self.assertRaises(ValueError):
-            ms.get_location_and_rb(**self.loc_and_rb_args)
+            ms.get_run_data(**self.loc_and_rb_args)
         mock_from_icat.assert_not_called()
         mock_from_database.assert_not_called()
 
@@ -300,7 +297,7 @@ class TestManualSubmission(TestCase):
                           run_number=None)
 
     @patch('autoreduce_scripts.manual_operations.manual_submission.login_queue')
-    @patch('autoreduce_scripts.manual_operations.manual_submission.get_location_and_rb',
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data',
            return_value=('test/file/path', "2222"))
     @patch('autoreduce_scripts.manual_operations.manual_submission.submit_run')
     def test_main_valid(self, mock_submit, mock_get_loc, mock_queue):
@@ -339,7 +336,7 @@ class TestManualSubmission(TestCase):
                                             description=mock_description)
 
     @patch('autoreduce_scripts.manual_operations.manual_submission.login_queue')
-    @patch('autoreduce_scripts.manual_operations.manual_submission.get_location_and_rb', return_value=(None, None))
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data', return_value=(None, None))
     @patch('autoreduce_scripts.manual_operations.manual_submission.submit_run')
     def test_main_not_found_in_icat(self, mock_submit: Mock, mock_get_loc: Mock, mock_queue: Mock):
         """

@@ -72,7 +72,7 @@ def submit_run(active_mq_client,
     return message.to_dict()
 
 
-def get_location_and_rb_from_database(instrument, run_number) -> Union[None, Tuple[str, str]]:
+def get_run_data_from_database(instrument, run_number) -> Union[None, Tuple[str, str]]:
     """
     Retrieves a run's data-file location and rb_number from the auto-reduction database
     Args:
@@ -111,7 +111,7 @@ def icat_datafile_query(icat_client, file_name):
                                      "' INCLUDE df.dataset AS ds, ds.investigation")
 
 
-def get_location_and_rb_from_icat(instrument, run_number, file_ext) -> Tuple[str, str]:
+def get_run_data_from_icat(instrument, run_number, file_ext) -> Tuple[str, str]:
     """
     Retrieves a run's data-file location and rb_number from ICAT.
     Attempts first with the default file name, then with prepended zeroes.
@@ -168,7 +168,7 @@ def overwrite_icat_calibration_rb_num(location: str, rb_num: Union[str, int]) ->
     return rb_num
 
 
-def get_location_and_rb(instrument: str, run_number: Union[str, int], file_ext: str) -> Tuple[str, str]:
+def get_run_data(instrument: str, run_number: Union[str, int], file_ext: str) -> Tuple[str, str]:
     """
     Retrieves a run's data-file location and rb_number from the auto-reduction database,
     or ICAT (if it is not in the database)
@@ -187,13 +187,13 @@ def get_location_and_rb(instrument: str, run_number: Union[str, int], file_ext: 
         logger.error("Cannot cast run_number as an integer. Run number given: '%s'. Exiting...", run_number)
         raise
 
-    result = get_location_and_rb_from_database(instrument, parsed_run_number)
+    result = get_run_data_from_database(instrument, parsed_run_number)
     if result:
         return result
     logger.info("Cannot find datafile for run_number %s in Auto-reduction database. "
                 "Will try ICAT...", parsed_run_number)
 
-    location, rb_num = get_location_and_rb_from_icat(instrument, parsed_run_number, file_ext)
+    location, rb_num = get_run_data_from_icat(instrument, parsed_run_number, file_ext)
     rb_num = overwrite_icat_calibration_rb_num(location, rb_num)
     return location, rb_num
 
@@ -337,7 +337,7 @@ def main(instrument,
         runs = [runs]
 
     for run_number in runs:
-        location, rb_num = get_location_and_rb(instrument, run_number, "nxs")
+        location, rb_num = get_run_data(instrument, run_number, "nxs")
         if not location and not rb_num:
             logger.error("Unable to find RB number and location for %s%s", instrument, run_number)
             continue

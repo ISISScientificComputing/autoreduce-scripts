@@ -18,9 +18,9 @@ class TestManualBatchSubmission(TestCase):
 
     @patch('autoreduce_scripts.manual_operations.manual_batch_submit.login_queue')
     @patch('autoreduce_scripts.manual_operations.manual_batch_submit.submit_run')
-    @patch('autoreduce_scripts.manual_operations.manual_batch_submit.get_location_and_rb',
+    @patch('autoreduce_scripts.manual_operations.manual_batch_submit.get_run_data',
            return_value=("test_location", "test_rb"))
-    def test_main(self, mock_get_location_and_rb: Mock, mock_submit_run: Mock, mock_login_queue: Mock):
+    def test_main(self, mock_get_run_data: Mock, mock_submit_run: Mock, mock_login_queue: Mock):
         """Tests the main function of the manual batch submission"""
         runs = [12345, 12346]
         mock_reduction_script = Mock()
@@ -31,7 +31,7 @@ class TestManualBatchSubmission(TestCase):
                           mock_description)
         mock_login_queue.assert_called_once()
 
-        mock_get_location_and_rb.assert_has_calls(
+        mock_get_run_data.assert_has_calls(
             [call(self.instrument.name, runs[0], "nxs"),
              call(self.instrument.name, runs[1], "nxs")])
 
@@ -46,9 +46,9 @@ class TestManualBatchSubmission(TestCase):
 
     @patch('autoreduce_scripts.manual_operations.manual_batch_submit.login_queue')
     @patch('autoreduce_scripts.manual_operations.manual_batch_submit.submit_run')
-    @patch('autoreduce_scripts.manual_operations.manual_batch_submit.get_location_and_rb',
+    @patch('autoreduce_scripts.manual_operations.manual_batch_submit.get_run_data',
            side_effect=[("test_location", "test_rb"), ("test_location_2", "test_rb_2")])
-    def test_main_bad_rb(self, mock_get_location_and_rb: Mock, mock_submit_run: Mock, mock_login_queue: Mock):
+    def test_main_bad_rb(self, mock_get_run_data: Mock, mock_submit_run: Mock, mock_login_queue: Mock):
         """Tests the main function of the manual batch submission"""
         runs = [12345, 12346]
 
@@ -61,7 +61,7 @@ class TestManualBatchSubmission(TestCase):
                               description="")
         mock_login_queue.assert_called_once()
 
-        mock_get_location_and_rb.assert_has_calls(
+        mock_get_run_data.assert_has_calls(
             [call(self.instrument.name, runs[0], "nxs"),
              call(self.instrument.name, runs[1], "nxs")])
 

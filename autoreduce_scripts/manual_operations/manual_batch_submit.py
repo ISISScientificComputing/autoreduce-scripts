@@ -8,7 +8,7 @@ from autoreduce_scripts.manual_operations import setup_django
 setup_django()
 
 # pylint:disable=wrong-import-position
-from autoreduce_scripts.manual_operations.manual_submission import get_location_and_rb, login_queue, submit_run
+from autoreduce_scripts.manual_operations.manual_submission import get_run_data, login_queue, submit_run
 
 
 def all_equal(iterator):
@@ -36,7 +36,7 @@ def main(instrument,
     activemq_client = login_queue()
     locations, rb_numbers = [], []
     for run in runs:
-        location, rb_num = get_location_and_rb(instrument, run, "nxs")
+        location, rb_num = get_run_data(instrument, run, "nxs")
         locations.append(location)
         rb_numbers.append(rb_num)
     if not all_equal(rb_numbers):
