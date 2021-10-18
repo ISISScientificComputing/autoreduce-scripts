@@ -14,7 +14,7 @@ setup(
     author="ISIS Autoreduction Team",
     url="https://github.com/ISISScientificComputing/autoreduce-scripts/",
     install_requires=[
-        "autoreduce_db==22.0.0.dev15",
+        "autoreduce_db==22.0.0.dev16",
         "autoreduce_utils==22.0.0.dev6",
         "django==3.2.8",
         "fire==0.4.0",
