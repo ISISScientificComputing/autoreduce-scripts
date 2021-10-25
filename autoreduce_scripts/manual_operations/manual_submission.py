@@ -192,7 +192,7 @@ def get_run_data(instrument: str, run_number: Union[str, int], file_ext: str) ->
         raise
 
     data_location, experiment_number, run_title = get_run_data_from_database(instrument, parsed_run_number)
-    if data_location and experiment_number and run_title:
+    if data_location is not None and experiment_number is not None and run_title is not None:
         return data_location, experiment_number, run_title
     logger.info("Cannot find datafile for run_number %s in Auto-reduction database. "
                 "Will try ICAT...", parsed_run_number)
