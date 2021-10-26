@@ -9,13 +9,13 @@ from setuptools import setup, find_packages
 
 setup(
     name="autoreduce_scripts",
-    version="22.0.0.dev25",
+    version="22.0.0.dev26",
     description="ISIS Autoreduce helper scripts",
     author="ISIS Autoreduction Team",
     url="https://github.com/ISISScientificComputing/autoreduce-scripts/",
     install_requires=[
-        "autoreduce_db==22.0.0.dev17",
-        "autoreduce_utils==22.0.0.dev6",
+        "autoreduce_db==22.0.0.dev18",
+        "autoreduce_utils==22.0.0.dev7",
         "django==3.2.8",
         "fire==0.4.0",
         "h5py==2.10.0",  # for reading the RB number from the datafile
