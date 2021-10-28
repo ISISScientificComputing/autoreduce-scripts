@@ -85,8 +85,12 @@ def get_run_data_from_database(instrument: str, run_number: int) -> Tuple[Option
     Returns:
          The data file location and rb_number, or None if this information is not in the database
     """
-    reduction_run_record = ReductionRun.objects.filter(
-        instrument__name=instrument, run_numbers__run_number=run_number).order_by('run_version').first()
+
+    # Find the latest version of a reduction run record to read information from it.
+    # Does NOT include batch runs, instead looks at individual runs
+    reduction_run_record = ReductionRun.objects.filter(instrument__name=instrument,
+                                                       run_numbers__run_number=run_number,
+                                                       batch_run=False).order_by('run_version').first()
 
     if not reduction_run_record:
         return None, None, None
