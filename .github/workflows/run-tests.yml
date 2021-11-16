@@ -23,7 +23,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      - uses: ISISScientificComputing/autoreduce-actions/build@master
+      - uses: ISISScientificComputing/autoreduce-actions/build@main
         with:
           package_name: autoreduce_scripts
 
@@ -84,11 +84,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      - uses: ISISScientificComputing/autoreduce-actions/build@master
+      - uses: ISISScientificComputing/autoreduce-actions/build@main
         with:
           package_name: autoreduce_scripts
 
-      - uses: ISISScientificComputing/autoreduce-actions/code_inspection@master
+      - uses: ISISScientificComputing/autoreduce-actions/code_inspection@main
         with:
           package_name: autoreduce_scripts
 
