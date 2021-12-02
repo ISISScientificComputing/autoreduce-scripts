@@ -1,5 +1,5 @@
 # ############################################################################### #
-# Autoreduction Repository : https://github.com/ISISScientificComputing/autoreduce
+# Autoreduction Repository : https://github.com/autoreduction/autoreduce
 #
 # Copyright &copy; 2019 ISIS Rutherford Appleton Laboratory UKRI
 # SPDX - License - Identifier: GPL-3.0-or-later
@@ -9,7 +9,7 @@
 Check that the last run is correct
 
 Issue to convert this to use the ORM is at
-https://github.com/ISISScientificComputing/autoreduce/issues/1096
+https://github.com/autoreduction/autoreduce/issues/1096
 """
 from __future__ import print_function
 import sys

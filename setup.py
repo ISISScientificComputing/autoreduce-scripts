@@ -12,7 +12,7 @@ setup(
     version="22.0.0.dev27",
     description="ISIS Autoreduce helper scripts",
     author="ISIS Autoreduction Team",
-    url="https://github.com/ISISScientificComputing/autoreduce-scripts/",
+    url="https://github.com/autoreduction/autoreduce-scripts/",
     install_requires=[
         "autoreduce_db==22.0.0.dev18",
         "autoreduce_utils==22.0.0.dev7",
