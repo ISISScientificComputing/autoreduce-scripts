@@ -119,7 +119,7 @@ def icat_datafile_query(icat_client, file_name):
                                      "' INCLUDE df.dataset AS ds, ds.investigation")
 
 
-def get_run_data_from_icat(instrument, run_number, file_ext) -> Tuple[str, str, str]:
+def get_run_data_from_icat(instrument, run_number, file_ext) -> Tuple[str, str]:
     """
     Retrieves a run's data-file location and rb_number from ICAT.
     Attempts first with the default file name, then with prepended zeroes.
@@ -158,7 +158,7 @@ def get_run_data_from_icat(instrument, run_number, file_ext) -> Tuple[str, str, 
 
     if not datafile:
         raise RuntimeError(f"Cannot find datafile '{file_name}' in ICAT.")
-    return datafile[0].location, datafile[0].dataset.investigation.name, datafile[0].dataset.investigation.title
+    return datafile[0].location, datafile[0].dataset.investigation.name
 
 
 def overwrite_icat_calibration_placeholder(location: str, value: Union[str, int], key: str) -> str:
@@ -171,7 +171,7 @@ def overwrite_icat_calibration_placeholder(location: str, value: Union[str, int]
     value = str(value)
 
     if "CAL" in value:
-        value = read_rb_from_datafile(location, key)
+        value = read_from_datafile(location, key)
 
     return value
 
@@ -201,11 +201,11 @@ def get_run_data(instrument: str, run_number: Union[str, int], file_ext: str) ->
     logger.info("Cannot find datafile for run_number %s in Auto-reduction database. "
                 "Will try ICAT...", parsed_run_number)
 
-    location, rb_num, run_title = get_run_data_from_icat(instrument, parsed_run_number, file_ext)
+    location, rb_num = get_run_data_from_icat(instrument, parsed_run_number, file_ext)
 
     # ICAT seems to do some replacements for calibration runs, overwriting the real RB number & the title
     rb_num = overwrite_icat_calibration_placeholder(location, rb_num, 'experiment_identifier')
-    run_title = overwrite_icat_calibration_placeholder(location, run_title, 'title')
+    run_title = read_from_datafile(location, 'title')
     return location, rb_num, run_title
 
 
@@ -259,7 +259,7 @@ def windows_to_linux_path(path) -> str:
     return path
 
 
-def read_rb_from_datafile(location: str, key: str) -> str:
+def read_from_datafile(location: str, key: str) -> str:
     """
     Reads the RB number from the location of the datafile
 
