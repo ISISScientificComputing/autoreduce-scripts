@@ -401,6 +401,9 @@ class TestManualSubmission(TestCase):
         ["1234", RBCategory.UNCATEGORIZED],
     ])
     def test_categorize_rb_number(self, rb_num, expected_category):
+        """
+        Test that the RB number is categorized correctly depending on the numbers in it.
+        """
         assert ms.categorize_rb_number(rb_num) == expected_category
 
     def test_read_rb_from_datafile(self):
