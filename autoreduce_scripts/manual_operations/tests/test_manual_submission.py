@@ -59,7 +59,7 @@ class TestManualSubmission(TestCase):
 
     def setUp(self):
         """ Creates test variables used throughout the test suite """
-        self.valid_return = ("location", "rb", "Test title")
+        self.valid_return = ("location", "rb")
 
         self.experiment, self.instrument = create_experiment_and_instrument()
 
@@ -81,7 +81,6 @@ class TestManualSubmission(TestCase):
         if return_from == "icat":
             ret_obj[0].location = self.valid_return[0]
             ret_obj[0].dataset.investigation.name = self.valid_return[1]
-            ret_obj[0].dataset.investigation.title = self.valid_return[2]
         elif return_from == "db_location":
             ret_obj[0].file_path = self.valid_return[0]
         elif return_from == "db_rb":
@@ -90,9 +89,9 @@ class TestManualSubmission(TestCase):
 
     @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data_from_database',
            return_value=(None, None, None))
-    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data_from_icat',
-           return_value=(None, None, None))
-    def test_get_checks_database_then_icat(self, mock_from_icat, mock_from_database):
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data_from_icat', return_value=(None, None))
+    @patch('autoreduce_scripts.manual_operations.manual_submission.read_from_datafile', return_value=None)
+    def test_get_checks_database_then_icat(self, read_from_datafile, mock_from_icat, mock_from_database):
         """
         Test: Data for a given run is searched for in the database before calling ICAT
         When: get_run_data is called for a datafile which isn't in the database
@@ -100,11 +99,11 @@ class TestManualSubmission(TestCase):
         ms.get_run_data("instrument", -1, "file_ext")
         mock_from_database.assert_called_once()
         mock_from_icat.assert_called_once()
+        read_from_datafile.assert_called_once()
 
     @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data_from_database',
            return_value=("string", 1234567, "some title"))
-    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data_from_icat',
-           return_value=(None, None, None))
+    @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data_from_icat', return_value=(None, None))
     def test_get_database_hit_skips_icat(self, mock_from_icat, mock_from_database):
         """
         Test: Data for a given run is searched for in the database before calling ICAT
@@ -145,9 +144,9 @@ class TestManualSubmission(TestCase):
         When: get_run_data_from_icat is called and the data is present in ICAT
         """
         login_icat.return_value.execute_query.return_value = self.make_query_return_object("icat")
-        loc, rb_num, title = ms.get_run_data_from_icat("instrument", -1, "file_ext")
+        loc, rb_num = ms.get_run_data_from_icat("instrument", -1, "file_ext")
         login_icat.return_value.execute_query.assert_called_once()
-        self.assertEqual((loc, rb_num, title), self.valid_return)
+        self.assertEqual((loc, rb_num), self.valid_return)
 
     @patch('autoreduce_scripts.manual_operations.manual_submission.login_icat')
     @patch('autoreduce_scripts.manual_operations.manual_submission.get_icat_instrument_prefix', return_value='MAR')
@@ -160,14 +159,12 @@ class TestManualSubmission(TestCase):
         data_file = Mock()
         data_file.location = 'location'
         data_file.dataset.investigation.name = 'inv_name'
-        data_file.dataset.investigation.title = 'inv_title'
         # Add return here to ensure we do NOT try fall through cases
         # and do NOT have to deal with multiple calls to mock
         icat_client.execute_query.return_value = [data_file]
-        actual_loc, actual_inv_name, actual_inv_title = ms.get_run_data_from_icat('MARI', '123', 'nxs')
+        actual_loc, actual_inv_name = ms.get_run_data_from_icat('MARI', '123', 'nxs')
         self.assertEqual('location', actual_loc)
         self.assertEqual('inv_name', actual_inv_name)
-        self.assertEqual('inv_title', actual_inv_title)
         login_icat.assert_called_once()
         icat_client.execute_query.assert_called_once_with("SELECT df FROM Datafile df WHERE"
                                                           " df.name = 'MAR00123.nxs' INCLUDE"
@@ -413,7 +410,7 @@ class TestManualSubmission(TestCase):
         """
         with temp_hdffile() as tmpfile:
             # replace / with \\ so that it looks like a Windows path
-            ms.read_rb_from_datafile(tmpfile.name.replace("/", "\\\\"), "experiment_identifier")
+            ms.read_from_datafile(tmpfile.name.replace("/", "\\\\"), "experiment_identifier")
 
     def test_read_rb_from_datafile_no_rb_number(self):
         """
@@ -426,7 +423,7 @@ class TestManualSubmission(TestCase):
 
             # replace / with \\ so that it looks like a Windows path
             with self.assertRaises(RuntimeError):
-                ms.read_rb_from_datafile(tmpfile.name.replace("/", "\\\\"), "experiment_identifier")
+                ms.read_from_datafile(tmpfile.name.replace("/", "\\\\"), "experiment_identifier")
 
     def test_read_rb_from_datafile_empty_nxs(self):
         """
@@ -438,7 +435,7 @@ class TestManualSubmission(TestCase):
 
             # replace / with \\ so that it looks like a Windows path
             with self.assertRaises(RuntimeError):
-                ms.read_rb_from_datafile(tmpfile.name.replace("/", "\\\\"), "experiment_identifier")
+                ms.read_from_datafile(tmpfile.name.replace("/", "\\\\"), "experiment_identifier")
 
     def test_icat_datafile_query(self):
         """
@@ -456,8 +453,6 @@ class TestManualSubmission(TestCase):
             assert ms.overwrite_icat_calibration_placeholder(tmpfile.name, "CAL_TEST",
                                                              "experiment_identifier") == "1234567"
 
-            assert ms.overwrite_icat_calibration_placeholder(tmpfile.name, "CAL_TEST", "title") == "test_title"
-
     def test_no_overwrite_icat_calibration_placeholder(self):
         """
         Test that the RB is not overwritten when CAL is not present in the string
@@ -465,5 +460,3 @@ class TestManualSubmission(TestCase):
         with temp_hdffile() as tmpfile:
             assert ms.overwrite_icat_calibration_placeholder(tmpfile.name, "test_rb_number",
                                                              "experiment_identifier") == "test_rb_number"
-            assert ms.overwrite_icat_calibration_placeholder(tmpfile.name, "some test title",
-                                                             "title") == "some test title"
