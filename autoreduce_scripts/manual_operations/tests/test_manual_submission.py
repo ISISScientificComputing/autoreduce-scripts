@@ -410,7 +410,7 @@ class TestManualSubmission(TestCase):
         """
         with temp_hdffile() as tmpfile:
             # replace / with \\ so that it looks like a Windows path
-            ms._read_rb_from_datafile(tmpfile.name.replace("/", "\\\\"))
+            ms._read_rb_from_datafile(tmpfile.name.replace("/", "\\\\"), "experiment_identifier")
 
     def test_read_rb_from_datafile_no_rb_number(self):
         """
@@ -423,7 +423,7 @@ class TestManualSubmission(TestCase):
 
             # replace / with \\ so that it looks like a Windows path
             with self.assertRaises(RuntimeError):
-                ms._read_rb_from_datafile(tmpfile.name.replace("/", "\\\\"))
+                ms._read_rb_from_datafile(tmpfile.name.replace("/", "\\\\"), "experiment_identifier")
 
     def test_read_rb_from_datafile_empty_nxs(self):
         """
@@ -435,7 +435,7 @@ class TestManualSubmission(TestCase):
 
             # replace / with \\ so that it looks like a Windows path
             with self.assertRaises(RuntimeError):
-                ms._read_rb_from_datafile(tmpfile.name.replace("/", "\\\\"))
+                ms._read_rb_from_datafile(tmpfile.name.replace("/", "\\\\"), "experiment_identifier")
 
     def test_icat_datafile_query(self):
         """
