@@ -44,6 +44,7 @@ def temp_hdffile():
                 dtype = h5py.special_dtype(vlen=bytes)
                 group = hdffile.create_group("information")
                 group.create_dataset("experiment_identifier", data=np.array([b"1234567"], dtype=dtype))
+                group.create_dataset("title", data=np.array([b"test_title"], dtype=dtype))
                 yield tmpfile
     finally:
         pass
@@ -443,17 +444,23 @@ class TestManualSubmission(TestCase):
         with self.assertRaises(RuntimeError):
             ms.icat_datafile_query(None, "test")
 
-    def test_overwrite_icat_calibration_rb_num(self):
+    def test_overwrite_icat_calibration_placeholder(self):
         """
         Test that runs with CAL_<some string> get their RB overwritten with
         one from the datafile
         """
         with temp_hdffile() as tmpfile:
-            assert "1234567" == ms.overwrite_icat_calibration_rb_num(tmpfile.name, "CAL_TEST")
+            assert ms.overwrite_icat_calibration_placeholder(tmpfile.name, "CAL_TEST",
+                                                             "experiment_identifier") == "1234567"
 
-    def test_no_overwrite_icat_calibration_rb_num(self):
+            assert ms.overwrite_icat_calibration_placeholder(tmpfile.name, "CAL_TEST", "title") == "test_title"
+
+    def test_no_overwrite_icat_calibration_placeholder(self):
         """
         Test that the RB is not overwritten when CAL is not present in the string
         """
         with temp_hdffile() as tmpfile:
-            assert "test_rb_number" == ms.overwrite_icat_calibration_rb_num(tmpfile.name, "test_rb_number")
+            assert ms.overwrite_icat_calibration_placeholder(tmpfile.name, "test_rb_number",
+                                                             "experiment_identifier") == "test_rb_number"
+            assert ms.overwrite_icat_calibration_placeholder(tmpfile.name, "some test title",
+                                                             "title") == "some test title"
