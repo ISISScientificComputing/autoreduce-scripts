@@ -25,7 +25,7 @@ from autoreduce_scripts.manual_operations import setup_django
 
 setup_django()
 
-# pylint:disable=wrong-import-order,wrong-import-position,no-member
+# pylint:disable=wrong-import-order,wrong-import-position,no-member,too-many-arguments,too-many-return-statements
 
 from autoreduce_db.reduction_viewer.models import ReductionRun
 
@@ -161,19 +161,19 @@ def get_run_data_from_icat(instrument, run_number, file_ext) -> Tuple[str, str, 
     return datafile[0].location, datafile[0].dataset.investigation.name, datafile[0].dataset.investigation.title
 
 
-def overwrite_icat_calibration_rb_num(location: str, rb_num: Union[str, int]) -> str:
+def overwrite_icat_calibration_placeholder(location: str, value: Union[str, int], key: str) -> str:
     """
-    Checks if the RB number provided has been overwritten by ICAT as a calibration run.
+    Checks if the value provided has been overwritten by ICAT with calibration run placeholder text.
 
     Returns:
-        The real RB number read from the datafile.
+        The real value read from the NXS data file logs directly.
     """
-    rb_num = str(rb_num)
+    value = str(value)
 
-    if "CAL" in rb_num:
-        rb_num = _read_rb_from_datafile(location)
+    if "CAL" in value:
+        value = read_rb_from_datafile(location, key)
 
-    return rb_num
+    return value
 
 
 def get_run_data(instrument: str, run_number: Union[str, int], file_ext: str) -> Tuple[str, str, str]:
@@ -202,7 +202,10 @@ def get_run_data(instrument: str, run_number: Union[str, int], file_ext: str) ->
                 "Will try ICAT...", parsed_run_number)
 
     location, rb_num, run_title = get_run_data_from_icat(instrument, parsed_run_number, file_ext)
-    rb_num = overwrite_icat_calibration_rb_num(location, rb_num)
+
+    # ICAT seems to do some replacements for calibration runs, overwriting the real RB number & the title
+    rb_num = overwrite_icat_calibration_placeholder(location, rb_num, 'experiment_identifier')
+    run_title = overwrite_icat_calibration_placeholder(location, run_title, 'title')
     return location, rb_num, run_title
 
 
@@ -241,7 +244,22 @@ def login_queue() -> QueueClient:
     return activemq_client
 
 
-def _read_rb_from_datafile(location: str) -> str:
+def windows_to_linux_path(path) -> str:
+    """ Convert windows path to linux path.
+
+    Args:
+        path: The path that will be converted
+
+    Returns:
+        Linux formatted file path
+    """
+    # '\\isis\inst$\' maps to '/isis/'
+    path = path.replace('\\\\isis\\inst$\\', '/isis/')
+    path = path.replace('\\', '/')
+    return path
+
+
+def read_rb_from_datafile(location: str, key: str) -> str:
     """
     Reads the RB number from the location of the datafile
 
@@ -251,19 +269,6 @@ def _read_rb_from_datafile(location: str) -> str:
     Returns:
         The RB number read from the datafile
     """
-    def windows_to_linux_path(path) -> str:
-        """ Convert windows path to linux path.
-
-        Args:
-            path: The path that will be converted
-
-        Returns:
-            Linux formatted file path
-        """
-        # '\\isis\inst$\' maps to '/isis/'
-        path = path.replace('\\\\isis\\inst$\\', '/isis/')
-        path = path.replace('\\', '/')
-        return path
 
     location = windows_to_linux_path(location)
     try:
@@ -273,7 +278,7 @@ def _read_rb_from_datafile(location: str) -> str:
 
     for (_, entry) in nxs_file.items():
         try:
-            return str(entry.get('experiment_identifier')[:][0].decode("utf-8"))
+            return str(entry.get(key)[:][0].decode("utf-8"))
         except Exception as err:
             raise RuntimeError("Could not read RB number from datafile") from err
     raise RuntimeError(f"Datafile at {location} does not have any items that can be iterated")

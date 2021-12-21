@@ -5,8 +5,11 @@
 # SPDX - License - Identifier: GPL-3.0-or-later
 # ############################################################################### #
 
+# pylint:disable=import-outside-toplevel
+
 
 def setup_django():
+    """Sets up the env to allow access to a django DB"""
     import django
     from django.conf import settings
     from autoreduce_scripts.autoreduce_django.settings import DATABASES, INSTALLED_APPS

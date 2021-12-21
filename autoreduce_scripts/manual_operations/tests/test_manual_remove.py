@@ -13,14 +13,15 @@ from typing import List, Union
 from unittest import mock
 from unittest.mock import DEFAULT, Mock, call, patch
 
-from autoreduce_db.reduction_viewer.models import Experiment, Instrument, ReductionArguments, ReductionScript, Status, DataLocation, RunNumber, ReductionRun
+from autoreduce_db.reduction_viewer.models import (Experiment, Instrument, ReductionArguments, ReductionScript, Status,
+                                                   DataLocation, RunNumber, ReductionRun)
 from django.db import IntegrityError
 from django.test import TestCase
 from django.utils import timezone
 
 from autoreduce_scripts.manual_operations.manual_remove import (ManualRemove, main, remove, user_input_check)
 
-# pylint:disable=no-member
+# pylint:disable=no-member,invalid-name
 
 
 class FakeMessage:
@@ -72,8 +73,9 @@ def create_reduction_run_record(experiment, instrument, message, run_version, sc
     time_now = timezone.now()
     script = ReductionScript.objects.create(text=script_text)
     arguments = ReductionArguments.objects.create(
-        raw=
-        """{"standard_vars":{"variable_str":"value1","variable_int":123,"variable_float":123.321,"variable_listint":[1,2,3],"variable_liststr":["a","b","c"],"variable_none":null,"variable_empty":"","variable_bool":true}}""",
+        raw="""{"standard_vars":{"variable_str":"value1","variable_int":123,"variable_float":123.321,
+        "variable_listint":[1,2,3],"variable_liststr":["a","b","c"],"variable_none":null,
+        "variable_empty":"","variable_bool":true}}""",
         instrument=instrument)
     reduction_run = ReductionRun.objects.create(run_version=run_version,
                                                 run_description=message.description,

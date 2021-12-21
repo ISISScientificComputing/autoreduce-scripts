@@ -16,7 +16,8 @@ from autoreduce_scripts.checks import setup_django  # setup_django first or impo
 
 setup_django()
 
-from autoreduce_db.reduction_viewer.models import Instrument  # pylint:disable=wrong-import-position
+# pylint:disable=wrong-import-position,wrong-import-order
+from autoreduce_db.reduction_viewer.models import Instrument
 
 # pylint:disable=no-member
 
