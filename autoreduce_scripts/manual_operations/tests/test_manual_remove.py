@@ -21,7 +21,7 @@ from django.utils import timezone
 
 from autoreduce_scripts.manual_operations.manual_remove import (ManualRemove, main, remove, user_input_check)
 
-# pylint:disable=no-member
+# pylint:disable=no-member,invalid-name
 
 
 class FakeMessage:

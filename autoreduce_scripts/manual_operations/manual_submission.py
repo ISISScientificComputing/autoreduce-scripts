@@ -171,7 +171,7 @@ def overwrite_icat_calibration_placeholder(location: str, value: Union[str, int]
     value = str(value)
 
     if "CAL" in value:
-        value = _read_rb_from_datafile(location, key)
+        value = read_rb_from_datafile(location, key)
 
     return value
 
@@ -259,7 +259,7 @@ def windows_to_linux_path(path) -> str:
     return path
 
 
-def _read_rb_from_datafile(location: str, key: str) -> str:
+def read_rb_from_datafile(location: str, key: str) -> str:
     """
     Reads the RB number from the location of the datafile
 

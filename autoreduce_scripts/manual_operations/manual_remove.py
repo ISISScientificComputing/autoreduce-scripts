@@ -17,7 +17,7 @@ from autoreduce_scripts.manual_operations.util import get_run_range
 
 setup_django()
 
-# pylint:disable=wrong-import-order,invalid-name
+# pylint:disable=wrong-import-position,wrong-import-order,invalid-name
 from autoreduce_db.reduction_viewer.models import DataLocation, Instrument, ReductionRun, ReductionLocation
 
 
