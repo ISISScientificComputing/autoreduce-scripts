@@ -25,7 +25,7 @@ from autoreduce_scripts.manual_operations import setup_django
 
 setup_django()
 
-# pylint:disable=wrong-import-order,wrong-import-position,no-member
+# pylint:disable=wrong-import-order,wrong-import-position,no-member,too-many-arguments,too-many-return-statements
 
 from autoreduce_db.reduction_viewer.models import ReductionRun
 
