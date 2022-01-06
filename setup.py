@@ -18,7 +18,7 @@ setup(
         "autoreduce_utils==22.0.0.dev9",
         "django",  # will be matched with requirement in autoreduce_db
         "fire==0.4.0",
-        "h5py==2.10.0",  # for reading the RB number from the datafile
+        "h5py==3.6.0",  # for reading the RB number from the datafile
         "GitPython==3.1.14"  # for backup_reduction_scripts.py
     ],
     packages=find_packages(),
