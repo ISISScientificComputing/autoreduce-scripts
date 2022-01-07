@@ -17,11 +17,13 @@ class TestUtil(TestCase):
     """
     Test util.py
     """
+
     def test_get_run_numbers_one_run_returns_correct_range(self):
         """
         Test: Correct range is returned
         When: second_run is None
         """
+
         self.assertEqual(range(1, 2), get_run_range(1))
 
     def test_get_run_numbers_valid_input_returns_valid_range(self):
@@ -29,6 +31,7 @@ class TestUtil(TestCase):
         Test: Correct range is returned
         When: second_run is provided
         """
+
         self.assertEqual(range(1, 5), get_run_range(first_run=1, last_run=4))
 
     def test_get_run_numbers_invalid_input_raises_value_error(self):
