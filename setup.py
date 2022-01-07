@@ -19,7 +19,7 @@ setup(
         "django",  # will be matched with requirement in autoreduce_db
         "fire==0.4.0",
         "h5py==3.1.0",  # for reading the RB number from the datafile
-        "GitPython==3.1.14"  # for backup_reduction_scripts.py
+        "GitPython==3.1.20"  # for backup_reduction_scripts.py
     ],
     packages=find_packages(),
     entry_points={
