@@ -24,7 +24,7 @@ class TimeSinceLastRunMatchingLastrunsTest(LiveServerTestCase):
             log_path = Path(BASE_INSTRUMENT_LASTRUNS_TXT_DIR.format(instrument))
             log_path.mkdir(parents=True, exist_ok=True)
             last_runs_txt = log_path / "lastrun.txt"
-            last_runs_txt.write_text(f"{instrument} {instrument.reduction_runs.last().run_number} 0")
+            last_runs_txt.write_text(f"{instrument} {instrument.reduction_runs.last().run_number} 0", encoding="utf-8")
 
     def tearDown(self) -> None:
         for instrument in self.instruments:
