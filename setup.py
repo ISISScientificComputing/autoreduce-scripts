@@ -14,8 +14,8 @@ setup(
     author="ISIS Autoreduction Team",
     url="https://github.com/autoreduction/autoreduce-scripts/",
     install_requires=[
-        "autoreduce_db==22.0.0.dev23",
-        "autoreduce_utils==22.0.0.dev9",
+        "autoreduce_db==22.0.0.dev24",
+        "autoreduce_utils==22.0.0.dev10",
         "django",  # will be matched with requirement in autoreduce_db
         "fire==0.4.0",
         "h5py==3.1.0",  # for reading the RB number from the datafile
