@@ -109,7 +109,8 @@ def main(args):
     except exc.GitCommandError as err:  # pylint: disable=no-member
         log.error(
             "Destination folder %s is not a Git repository. "
-            "Please configure it manually before running this script.", str(STORAGE_DIR))
+            "Please configure it manually before running this script."
+            "Error %s", str(STORAGE_DIR), err)
         sys.exit(1)
 
     for inst in [directory for directory in os.listdir(ISIS_MOUNT_PATH) if directory.startswith("NDX")]:

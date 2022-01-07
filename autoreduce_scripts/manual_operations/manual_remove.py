@@ -25,6 +25,7 @@ class ManualRemove:
     """
     Handles removing a run from the database
     """
+
     def __init__(self, instrument: str):
         """
         Args:
@@ -86,7 +87,7 @@ class ManualRemove:
         Args:
             run_number: The run to remove from the dictionary
         """
-        print('No runs found associated with {} for instrument {}'.format(run_number, self.instrument))
+        print(f'No runs found associated with {run_number} for instrument {self.instrument}')
         del self.to_delete[run_number]
 
     def multiple_versions_found(self, run_number):
@@ -98,15 +99,16 @@ class ManualRemove:
             run_number: The run number with multiple versions
         """
         # Display run_number - title - version for all matching runs
-        print("Discovered multiple reduction versions for {}{}:".format(self.instrument, run_number))
+        print(f"Discovered multiple reduction versions for {self.instrument}{run_number}:")
         for run in self.to_delete[run_number]:
-            print("\tv{} - {}".format(run.run_version, run.run_description))
+            print(f"\tv{run.run_version} - {run.run_description}")
 
         # Get user input for which versions they wish to delete
         user_input = input("Which runs would you like to delete (e.g. 0,1,2,3 or 0-3): ")
         input_valid, user_input = self.validate_csv_input(user_input)
         while input_valid is False:
-            user_input = input('Input was invalid. ' 'Please provide a comma separated list or a range of values: ')
+            user_input = input('Input was invalid. '
+                               'Please provide a comma separated list or a range of values: ')
             input_valid, user_input = self.validate_csv_input(user_input)
 
         # Remove runs that the user does NOT want to delete from the delete list

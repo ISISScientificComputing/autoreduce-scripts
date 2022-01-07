@@ -49,7 +49,8 @@ def checkLastRun():
         cursor.execute("SELECT MAX(run_number)" + "FROM reduction_viewer_reductionrun WHERE instrument_id = " +
                        str(inst['id']))
         last_reduction_run = cursor.fetchone()['MAX(run_number)']
-        with open(path.join(ISIS_MOUNT, "NDX" + inst["name"], "Instrument", "logs", "lastrun.txt")) as last_run_file:
+        with open(path.join(ISIS_MOUNT, "NDX" + inst["name"], "Instrument", "logs", "lastrun.txt"),
+                  encoding="utf-8") as last_run_file:
             last_run = int(last_run_file.readline().split(" ")[1])
 
         # Check range because it may be a couple out.

@@ -41,7 +41,7 @@ def main():
             logger.info("Instrument %s is paused", instrument)
             continue
         last_runs_txt_file = Path(BASE_INSTRUMENT_LASTRUNS_TXT_DIR.format(instrument), "lastrun.txt")
-        last_runs_txt = last_runs_txt_file.read_text()
+        last_runs_txt = last_runs_txt_file.read_text(encoding="utf-8")
 
         last_run = instrument.reduction_runs.last()
         if last_run and timezone.now() - last_run.created > timedelta(1):
