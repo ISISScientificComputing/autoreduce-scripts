@@ -350,9 +350,9 @@ class TestManualSubmission(TestCase):
         mock_submit.assert_called_once_with(mock_queue_client,
                                             "2222",
                                             'TEST',
+                                            mock_software,
                                             'test/file/path',
                                             1111,
-                                            software=mock_software,
                                             run_title="some title",
                                             reduction_script=mock_reduction_script,
                                             reduction_arguments=mock_reduction_args,
@@ -392,7 +392,7 @@ class TestManualSubmission(TestCase):
         Test: A RuntimeError is raised
         When: Neither ICAT or Database connections can be established
         """
-        self.assertRaises(RuntimeError, ms.main, 'TEST', 1111)
+        self.assertRaises(RuntimeError, ms.main, 'TEST', 1111, {"name": "Mantid", "version": "6.2.0"})
         mock_login_icat.assert_called_once()
 
     @parameterized.expand([
