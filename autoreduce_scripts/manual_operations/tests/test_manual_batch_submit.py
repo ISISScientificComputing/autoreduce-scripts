@@ -38,8 +38,8 @@ class TestManualBatchSubmission(TestCase):
 
         mock_submit_run.assert_called_once_with(mock_login_queue.return_value,
                                                 "test_rb",
-                                                self.instrument.name, ["test_location", "test_location"],
-                                                mock_software,
+                                                self.instrument.name,
+                                                mock_software, ["test_location", "test_location"],
                                                 runs,
                                                 run_title=["test_title", "test_title"],
                                                 reduction_script=mock_reduction_script,
