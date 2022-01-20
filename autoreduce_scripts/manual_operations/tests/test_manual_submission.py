@@ -308,6 +308,10 @@ class TestManualSubmission(TestCase):
             ms.submit_run(active_mq_client=None,
                           rb_number="123",
                           instrument="instr",
+                          software={
+                              "name": "Mantid",
+                              "version": "6.2.0"
+                          },
                           data_file_location="loc",
                           run_number=123,
                           run_title="")
@@ -328,10 +332,12 @@ class TestManualSubmission(TestCase):
         mock_reduction_args = Mock()
         mock_userid = Mock()
         mock_description = Mock()
+        mock_software = Mock()
 
         # Call functionality
         return_value = ms.main(instrument='TEST',
                                runs=1111,
+                               software=mock_software,
                                reduction_script=mock_reduction_script,
                                reduction_arguments=mock_reduction_args,
                                user_id=mock_userid,
@@ -346,6 +352,7 @@ class TestManualSubmission(TestCase):
                                             'TEST',
                                             'test/file/path',
                                             1111,
+                                            software=mock_software,
                                             run_title="some title",
                                             reduction_script=mock_reduction_script,
                                             reduction_arguments=mock_reduction_args,
@@ -364,10 +371,12 @@ class TestManualSubmission(TestCase):
         mock_reduction_args = Mock()
         mock_userid = Mock()
         mock_description = Mock()
+        mock_software = Mock()
 
         # Call functionality
         ms.main(instrument='TEST',
                 runs=1111,
+                software=mock_software,
                 reduction_script=mock_reduction_script,
                 reduction_arguments=mock_reduction_args,
                 user_id=mock_userid,
