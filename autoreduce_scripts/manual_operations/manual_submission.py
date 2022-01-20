@@ -328,6 +328,7 @@ def main(instrument: str,
     Args:
         instrument: The name of the instrument to submit a run for
         runs: The run or runs to be submitted. If a list then all the run numbers in it will be submitted
+        software: The software to be used for reduction (e.g. {'name': 'ISIS', 'version': '1.0'})
         reduction_script: The reduction script to be used. If not provided,
                           the default reduction script for the instrument will be used.
                           Currently unused as the queue processor will ignore the value

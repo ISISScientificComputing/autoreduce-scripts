@@ -27,8 +27,9 @@ class TestManualBatchSubmission(TestCase):
         mock_reduction_arguments = Mock()
         mock_user_id = Mock()
         mock_description = Mock()
-        submit_batch_main(self.instrument.name, runs, mock_reduction_script, mock_reduction_arguments, mock_user_id,
-                          mock_description)
+        mock_software = Mock()
+        submit_batch_main(self.instrument.name, runs, mock_software, mock_reduction_script, mock_reduction_arguments,
+                          mock_user_id, mock_description)
         mock_login_queue.assert_called_once()
 
         mock_get_run_data.assert_has_calls(
@@ -38,6 +39,7 @@ class TestManualBatchSubmission(TestCase):
         mock_submit_run.assert_called_once_with(mock_login_queue.return_value,
                                                 "test_rb",
                                                 self.instrument.name, ["test_location", "test_location"],
+                                                mock_software,
                                                 runs,
                                                 run_title=["test_title", "test_title"],
                                                 reduction_script=mock_reduction_script,
@@ -56,6 +58,7 @@ class TestManualBatchSubmission(TestCase):
         with self.assertRaises(RuntimeError):
             submit_batch_main(self.instrument.name,
                               runs,
+                              software={},
                               reduction_script="",
                               reduction_arguments={},
                               user_id=-1,
