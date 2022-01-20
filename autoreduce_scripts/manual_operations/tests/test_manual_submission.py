@@ -234,7 +234,11 @@ class TestManualSubmission(TestCase):
             },
             "user_id": 15151,
             "description": "test_description",
-            "run_title": "test run title"
+            "run_title": "test run title",
+            "software": {
+                "name": "Mantid",
+                "version": "6.2.0"
+            }
         }
         ms.submit_run(**sub_run_args)
         message = Message(rb_number=sub_run_args["rb_number"],
@@ -245,7 +249,8 @@ class TestManualSubmission(TestCase):
                           started_by=sub_run_args["user_id"],
                           reduction_arguments=sub_run_args["reduction_arguments"],
                           description=sub_run_args["description"],
-                          run_title=sub_run_args["run_title"])
+                          run_title=sub_run_args["run_title"],
+                          software=sub_run_args["software"])
 
         sub_run_args["active_mq_client"].send.assert_called_with('/queue/DataReady', message, priority=1)
 

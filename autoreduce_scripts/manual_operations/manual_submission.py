@@ -36,6 +36,7 @@ def submit_run(
     active_mq_client,
     rb_number: Union[str, List[str]],
     instrument: str,
+    software: dict,
     data_file_location: Union[str, List[str]],
     run_number: Union[int, Iterable[int]],
     run_title: Union[str, List[str]],
@@ -69,7 +70,8 @@ def submit_run(
                       reduction_script=reduction_script,
                       reduction_arguments=reduction_arguments,
                       description=description,
-                      run_title=run_title)
+                      run_title=run_title,
+                      software=software)
     active_mq_client.send('/queue/DataReady', message, priority=1)
     logger.info("Submitted run: %s", message.serialize(indent=1))
     return message.to_dict()
