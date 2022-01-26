@@ -23,7 +23,7 @@ def all_equal(iterator):
 
 def main(instrument,
          runs: Iterable[int],
-         software: dict,
+         software: Optional[dict] = None,
          reduction_script: Optional[str] = None,
          reduction_arguments: Optional[dict] = None,
          user_id: int = -1,
