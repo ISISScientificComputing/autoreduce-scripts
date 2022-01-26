@@ -21,14 +21,14 @@ def all_equal(iterator):
     return all(first == x for x in iterator)
 
 
-def main(
-        instrument,  # pylint:disable=too-many-locals
-        runs: Iterable[int],
-        software: Optional[dict] = None,
-        reduction_script: Optional[str] = None,
-        reduction_arguments: Optional[dict] = None,
-        user_id: int = -1,
-        description: str = ""):
+# pylint: disable=too-many-locals
+def main(instrument,
+         runs: Iterable[int],
+         software: Optional[dict] = None,
+         reduction_script: Optional[str] = None,
+         reduction_arguments: Optional[dict] = None,
+         user_id: int = -1,
+         description: str = ""):
     """Submits the runs for this instrument as a single reduction"""
 
     logger = logging.getLogger(__file__)
