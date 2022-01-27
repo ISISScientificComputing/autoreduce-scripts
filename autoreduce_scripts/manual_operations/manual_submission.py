@@ -316,7 +316,7 @@ def categorize_rb_number(rb_num: str):
 
 def main(instrument: str,
          runs: Union[int, Iterable[int]],
-         software: dict,
+         software: Optional[dict] = None,
          reduction_script: Optional[str] = None,
          reduction_arguments: Optional[dict] = None,
          user_id=-1,
