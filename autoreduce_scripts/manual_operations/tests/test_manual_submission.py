@@ -234,7 +234,11 @@ class TestManualSubmission(TestCase):
             },
             "user_id": 15151,
             "description": "test_description",
-            "run_title": "test run title"
+            "run_title": "test run title",
+            "software": {
+                "name": "Mantid",
+                "version": "6.2.0"
+            }
         }
         ms.submit_run(**sub_run_args)
         message = Message(rb_number=sub_run_args["rb_number"],
@@ -245,7 +249,8 @@ class TestManualSubmission(TestCase):
                           started_by=sub_run_args["user_id"],
                           reduction_arguments=sub_run_args["reduction_arguments"],
                           description=sub_run_args["description"],
-                          run_title=sub_run_args["run_title"])
+                          run_title=sub_run_args["run_title"],
+                          software=sub_run_args["software"])
 
         sub_run_args["active_mq_client"].send.assert_called_with('/queue/DataReady', message, priority=1)
 
@@ -303,6 +308,10 @@ class TestManualSubmission(TestCase):
             ms.submit_run(active_mq_client=None,
                           rb_number="123",
                           instrument="instr",
+                          software={
+                              "name": "Mantid",
+                              "version": "6.2.0"
+                          },
                           data_file_location="loc",
                           run_number=123,
                           run_title="")
@@ -323,10 +332,12 @@ class TestManualSubmission(TestCase):
         mock_reduction_args = Mock()
         mock_userid = Mock()
         mock_description = Mock()
+        mock_software = Mock()
 
         # Call functionality
         return_value = ms.main(instrument='TEST',
                                runs=1111,
+                               software=mock_software,
                                reduction_script=mock_reduction_script,
                                reduction_arguments=mock_reduction_args,
                                user_id=mock_userid,
@@ -342,6 +353,7 @@ class TestManualSubmission(TestCase):
                                             'test/file/path',
                                             1111,
                                             run_title="some title",
+                                            software=mock_software,
                                             reduction_script=mock_reduction_script,
                                             reduction_arguments=mock_reduction_args,
                                             user_id=mock_userid,
@@ -359,10 +371,12 @@ class TestManualSubmission(TestCase):
         mock_reduction_args = Mock()
         mock_userid = Mock()
         mock_description = Mock()
+        mock_software = Mock()
 
         # Call functionality
         ms.main(instrument='TEST',
                 runs=1111,
+                software=mock_software,
                 reduction_script=mock_reduction_script,
                 reduction_arguments=mock_reduction_args,
                 user_id=mock_userid,
@@ -378,7 +392,7 @@ class TestManualSubmission(TestCase):
         Test: A RuntimeError is raised
         When: Neither ICAT or Database connections can be established
         """
-        self.assertRaises(RuntimeError, ms.main, 'TEST', 1111)
+        self.assertRaises(RuntimeError, ms.main, 'TEST', 1111, {"name": "Mantid", "version": "6.2.0"})
         mock_login_icat.assert_called_once()
 
     @parameterized.expand([

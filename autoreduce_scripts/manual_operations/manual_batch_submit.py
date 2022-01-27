@@ -21,8 +21,10 @@ def all_equal(iterator):
     return all(first == x for x in iterator)
 
 
+# pylint: disable=too-many-locals
 def main(instrument,
          runs: Iterable[int],
+         software: Optional[dict] = None,
          reduction_script: Optional[str] = None,
          reduction_arguments: Optional[dict] = None,
          user_id: int = -1,
@@ -48,6 +50,7 @@ def main(instrument,
                       locations,
                       runs,
                       run_title=titles,
+                      software=software,
                       reduction_script=reduction_script,
                       reduction_arguments=reduction_arguments,
                       user_id=user_id,

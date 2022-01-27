@@ -39,6 +39,7 @@ def submit_run(
     data_file_location: Union[str, List[str]],
     run_number: Union[int, Iterable[int]],
     run_title: Union[str, List[str]],
+    software: Optional[dict] = None,
     reduction_script: str = None,
     reduction_arguments: dict = None,
     user_id=-1,
@@ -69,7 +70,8 @@ def submit_run(
                       reduction_script=reduction_script,
                       reduction_arguments=reduction_arguments,
                       description=description,
-                      run_title=run_title)
+                      run_title=run_title,
+                      software=software)
     active_mq_client.send('/queue/DataReady', message, priority=1)
     logger.info("Submitted run: %s", message.serialize(indent=1))
     return message.to_dict()
@@ -314,6 +316,7 @@ def categorize_rb_number(rb_num: str):
 
 def main(instrument: str,
          runs: Union[int, Iterable[int]],
+         software: Optional[dict] = None,
          reduction_script: Optional[str] = None,
          reduction_arguments: Optional[dict] = None,
          user_id=-1,
@@ -325,6 +328,7 @@ def main(instrument: str,
     Args:
         instrument: The name of the instrument to submit a run for
         runs: The run or runs to be submitted. If a list then all the run numbers in it will be submitted
+        software: The software to be used for reduction (e.g. {'name': 'ISIS', 'version': '1.0'})
         reduction_script: The reduction script to be used. If not provided,
                           the default reduction script for the instrument will be used.
                           Currently unused as the queue processor will ignore the value
@@ -369,6 +373,7 @@ def main(instrument: str,
                        location,
                        run_number,
                        run_title=run_title,
+                       software=software,
                        reduction_script=reduction_script,
                        reduction_arguments=reduction_arguments,
                        user_id=user_id,
