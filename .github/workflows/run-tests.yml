@@ -25,6 +25,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
+      - name: Remote dotenv to Environment (configserver alike)
+        uses: Steph0/dotenv-configserver@v1.2.0
+        with:
+          repository: "autoreduction/autoreduce-workspace"
+
       - uses: autoreduction/autoreduce-actions/build@main
         with:
           package_name: autoreduce_scripts
