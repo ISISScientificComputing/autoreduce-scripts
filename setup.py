@@ -9,18 +9,18 @@ from setuptools import setup, find_packages
 
 setup(
     name="autoreduce_scripts",
-    version="22.0.0.dev35",
+    version="22.0.0.dev36",
     description="ISIS Autoreduce helper scripts",
     author="ISIS Autoreduction Team",
     url="https://github.com/autoreduction/autoreduce-scripts/",
     install_requires=[
-        "autoreduce_db==22.0.0.dev26",
-        "autoreduce_utils==22.0.0.dev12",
+        "autoreduce_db==22.0.0.dev29",
+        "autoreduce_utils==22.0.0.dev15",
         "django",  # will be matched with requirement in autoreduce_db
         "fire==0.4.0",
         "h5py<=3.6.0",  # for reading the RB number from the datafile
         "GitPython<=3.1.26",  # for backup_reduction_scripts.py
-        "stomp.py==7.0.0"
+        "stomp.py"
     ],
     packages=find_packages(),
     entry_points={
