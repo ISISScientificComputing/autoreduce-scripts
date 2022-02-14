@@ -19,7 +19,7 @@ from autoreduce_utils.clients.icat_client import ICATClient
 from autoreduce_utils.clients.queue_client import QueueClient
 from autoreduce_utils.clients.tools.isisicat_prefix_mapping import get_icat_instrument_prefix
 from autoreduce_utils.message.message import Message
-from autoreduce_utils.clients.producer import Publisher, setup_connection
+from autoreduce_utils.clients.confluent_producer import Publisher, setup_connection
 
 from autoreduce_scripts.manual_operations.rb_categories import RBCategory
 from autoreduce_scripts.manual_operations import setup_django
