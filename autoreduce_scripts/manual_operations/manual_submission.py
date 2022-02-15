@@ -19,7 +19,7 @@ from autoreduce_utils.clients.icat_client import ICATClient
 from autoreduce_utils.clients.queue_client import QueueClient
 from autoreduce_utils.clients.tools.isisicat_prefix_mapping import get_icat_instrument_prefix
 from autoreduce_utils.message.message import Message
-from autoreduce_utils.clients.confluent_producer import Publisher, setup_connection
+from autoreduce_utils.clients.producer import Publisher
 
 from autoreduce_scripts.manual_operations.rb_categories import RBCategory
 from autoreduce_scripts.manual_operations import setup_django
@@ -73,7 +73,7 @@ def submit_run(
                       description=description,
                       run_title=run_title,
                       software=software)
-    publisher.send(message)
+    publisher.publish(topic="data_ready", messages=message)
     logger.info("Submitted run: %s", message.serialize(indent=1))
     return message.to_dict()
 
@@ -348,7 +348,7 @@ def main(instrument: str,
 
     instrument = instrument.upper()
 
-    publisher = setup_connection()
+    publisher = Publisher()
 
     submitted_runs = []
 
