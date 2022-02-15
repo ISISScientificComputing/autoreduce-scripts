@@ -223,7 +223,7 @@ class TestManualSubmission(TestCase):
         When: submit_run is called with valid arguments
         """
         sub_run_args = {
-            "active_mq_client": MagicMock(name="QueueClient"),
+            "publisher": MagicMock(name="Publisher"),
             "rb_number": -1,
             "instrument": "instrument",
             "data_file_location": "data_file_location",
@@ -305,7 +305,7 @@ class TestManualSubmission(TestCase):
         When: Calling submit_run with active_mq as None
         """
         with self.assertRaises(RuntimeError):
-            ms.submit_run(active_mq_client=None,
+            ms.submit_run(publisher=None,
                           rb_number="123",
                           instrument="instr",
                           software={
@@ -359,7 +359,7 @@ class TestManualSubmission(TestCase):
                                             user_id=mock_userid,
                                             description=mock_description)
 
-    @patch('autoreduce_scripts.manual_operations.manual_submission.login_queue')
+    @patch('confluent_kafka.Producer')
     @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data', return_value=(None, None, None))
     @patch('autoreduce_scripts.manual_operations.manual_submission.submit_run')
     def test_main_not_found_in_icat(self, mock_submit: Mock, mock_get_loc: Mock, mock_queue: Mock):
