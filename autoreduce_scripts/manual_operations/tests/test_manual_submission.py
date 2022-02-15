@@ -279,12 +279,14 @@ class TestManualSubmission(TestCase):
             ms.login_icat()
         mock_connect.assert_called_once()
 
+    @patch('autoreduce_scripts.manual_operations.manual_submission.Publisher.__init__')
     def test_queue_login_valid(self, _):
         """
         Test: A valid Queue client is returned
         When: We can log in via the queue client
         Note: We mock the connect so it does not actual perform the connect (default pass)
         """
+        _.return_value = None
         actual = ms.login_queue()
         self.assertIsInstance(actual, Publisher)
 
