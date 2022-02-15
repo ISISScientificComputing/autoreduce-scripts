@@ -316,7 +316,7 @@ class TestManualSubmission(TestCase):
                           run_number=123,
                           run_title="")
 
-    @patch('autoreduce_utils.clients.producer.Publisher')
+    @patch('autoreduce_scripts.manual_operations.manual_submission.login_queue')
     @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data',
            return_value=('test/file/path', "2222", "some title"))
     @patch('autoreduce_scripts.manual_operations.manual_submission.submit_run')
@@ -359,7 +359,7 @@ class TestManualSubmission(TestCase):
                                             user_id=mock_userid,
                                             description=mock_description)
 
-    @patch('confluent_kafka.Producer')
+    @patch('autoreduce_scripts.manual_operations.manual_submission.login_queue')
     @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data', return_value=(None, None, None))
     @patch('autoreduce_scripts.manual_operations.manual_submission.submit_run')
     def test_main_not_found_in_icat(self, mock_submit: Mock, mock_get_loc: Mock, mock_queue: Mock):

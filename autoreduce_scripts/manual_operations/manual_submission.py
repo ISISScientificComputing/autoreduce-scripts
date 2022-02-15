@@ -16,7 +16,6 @@ import h5py
 
 from autoreduce_utils.clients.connection_exception import ConnectionException
 from autoreduce_utils.clients.icat_client import ICATClient
-from autoreduce_utils.clients.queue_client import QueueClient
 from autoreduce_utils.clients.tools.isisicat_prefix_mapping import get_icat_instrument_prefix
 from autoreduce_utils.message.message import Message
 from autoreduce_utils.clients.producer import Publisher
@@ -229,23 +228,15 @@ def login_icat() -> ICATClient:
     return icat_client
 
 
-#TODO: Refactor for Kafka credentials
-def login_queue() -> QueueClient:
+def login_queue() -> Publisher:
     """
     Log into the QueueClient
 
     Returns:
         The client connected, or raise exception
     """
-    print("Logging into ActiveMQ")
-    activemq_client = QueueClient()
-    try:
-        activemq_client.connect()
-    except (ConnectionException, ValueError) as exp:
-        raise RuntimeError(
-            "Cannot connect to ActiveMQ with provided credentials in credentials.ini\n"
-            "Check that the ActiveMQ service is running, and the username, password and host are correct.") from exp
-    return activemq_client
+    publisher = Publisher()
+    return publisher
 
 
 def windows_to_linux_path(path) -> str:
@@ -348,7 +339,7 @@ def main(instrument: str,
 
     instrument = instrument.upper()
 
-    publisher = Publisher()
+    publisher = login_queue()
 
     submitted_runs = []
 
