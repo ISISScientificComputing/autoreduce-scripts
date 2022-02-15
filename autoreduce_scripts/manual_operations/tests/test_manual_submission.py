@@ -15,8 +15,8 @@ import h5py
 import numpy as np
 from autoreduce_utils.clients.connection_exception import ConnectionException
 from autoreduce_utils.clients.icat_client import ICATClient
-from autoreduce_utils.clients.queue_client import QueueClient
 from autoreduce_utils.message.message import Message
+from autoreduce_utils.clients.producer import Publisher
 from django.test import TestCase
 from parameterized import parameterized
 
@@ -279,7 +279,6 @@ class TestManualSubmission(TestCase):
             ms.login_icat()
         mock_connect.assert_called_once()
 
-    @patch('autoreduce_scripts.manual_operations.manual_submission.QueueClient.connect')
     def test_queue_login_valid(self, _):
         """
         Test: A valid Queue client is returned
@@ -287,17 +286,7 @@ class TestManualSubmission(TestCase):
         Note: We mock the connect so it does not actual perform the connect (default pass)
         """
         actual = ms.login_queue()
-        self.assertIsInstance(actual, QueueClient)
-
-    @patch('autoreduce_scripts.manual_operations.manual_submission.QueueClient.connect')
-    def test_queue_login_invalid(self, mock_connect):
-        """
-        Test: An exception is raised
-        When: We are unable to log in via the client
-        """
-        con_exp = ConnectionException('Queue')
-        mock_connect.side_effect = con_exp
-        self.assertRaises(RuntimeError, ms.login_queue)
+        self.assertIsInstance(actual, Publisher)
 
     def test_submit_run_no_amq(self):
         """
