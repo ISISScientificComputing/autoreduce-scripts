@@ -15,8 +15,8 @@ import h5py
 import numpy as np
 from autoreduce_utils.clients.connection_exception import ConnectionException
 from autoreduce_utils.clients.icat_client import ICATClient
-from autoreduce_utils.clients.queue_client import QueueClient
 from autoreduce_utils.message.message import Message
+from autoreduce_utils.clients.producer import Publisher
 from django.test import TestCase
 from parameterized import parameterized
 
@@ -223,7 +223,7 @@ class TestManualSubmission(TestCase):
         When: submit_run is called with valid arguments
         """
         sub_run_args = {
-            "active_mq_client": MagicMock(name="QueueClient"),
+            "publisher": MagicMock(name="Publisher"),
             "rb_number": -1,
             "instrument": "instrument",
             "data_file_location": "data_file_location",
@@ -252,7 +252,7 @@ class TestManualSubmission(TestCase):
                           run_title=sub_run_args["run_title"],
                           software=sub_run_args["software"])
 
-        sub_run_args["active_mq_client"].send.assert_called_with('/queue/DataReady', message, priority=1)
+        sub_run_args["publisher"].publish.assert_called_with(topic='data_ready', messages=message)
 
     @patch('icat.Client')
     @patch('autoreduce_scripts.manual_operations.manual_submission.ICATClient.connect')
@@ -279,25 +279,16 @@ class TestManualSubmission(TestCase):
             ms.login_icat()
         mock_connect.assert_called_once()
 
-    @patch('autoreduce_scripts.manual_operations.manual_submission.QueueClient.connect')
+    @patch('autoreduce_scripts.manual_operations.manual_submission.Publisher.__init__')
     def test_queue_login_valid(self, _):
         """
         Test: A valid Queue client is returned
         When: We can log in via the queue client
         Note: We mock the connect so it does not actual perform the connect (default pass)
         """
+        _.return_value = None
         actual = ms.login_queue()
-        self.assertIsInstance(actual, QueueClient)
-
-    @patch('autoreduce_scripts.manual_operations.manual_submission.QueueClient.connect')
-    def test_queue_login_invalid(self, mock_connect):
-        """
-        Test: An exception is raised
-        When: We are unable to log in via the client
-        """
-        con_exp = ConnectionException('Queue')
-        mock_connect.side_effect = con_exp
-        self.assertRaises(RuntimeError, ms.login_queue)
+        self.assertIsInstance(actual, Publisher)
 
     def test_submit_run_no_amq(self):
         """
@@ -305,7 +296,7 @@ class TestManualSubmission(TestCase):
         When: Calling submit_run with active_mq as None
         """
         with self.assertRaises(RuntimeError):
-            ms.submit_run(active_mq_client=None,
+            ms.submit_run(publisher=None,
                           rb_number="123",
                           instrument="instr",
                           software={

@@ -16,9 +16,9 @@ import h5py
 
 from autoreduce_utils.clients.connection_exception import ConnectionException
 from autoreduce_utils.clients.icat_client import ICATClient
-from autoreduce_utils.clients.queue_client import QueueClient
 from autoreduce_utils.clients.tools.isisicat_prefix_mapping import get_icat_instrument_prefix
 from autoreduce_utils.message.message import Message
+from autoreduce_utils.clients.producer import Publisher
 
 from autoreduce_scripts.manual_operations.rb_categories import RBCategory
 from autoreduce_scripts.manual_operations import setup_django
@@ -33,7 +33,7 @@ logger = logging.getLogger(__file__)
 
 
 def submit_run(
-    active_mq_client,
+    publisher: Publisher,
     rb_number: Union[str, List[str]],
     instrument: str,
     data_file_location: Union[str, List[str]],
@@ -49,17 +49,17 @@ def submit_run(
     Submit a new run for autoreduction
 
     Args:
-        active_mq_client: The client for access to ActiveMQ
+        publisher: The Kafka producer to use to send messages to the queue
         rb_number: desired experiment rb number
         instrument: name of the instrument
         data_file_location: location of the data file
         run_number: run number fo the experiment
 
     Returns:
-        The dict representation of the message that was submitted to ActiveMQ
+        The dict representation of the message that was submitted to the producer
     """
-    if active_mq_client is None:
-        raise RuntimeError("ActiveMQ not connected, cannot submit runs")
+    if publisher is None:
+        raise RuntimeError("Producer not connected, cannot submit runs")
 
     message = Message(rb_number=rb_number,
                       instrument=instrument,
@@ -72,7 +72,7 @@ def submit_run(
                       description=description,
                       run_title=run_title,
                       software=software)
-    active_mq_client.send('/queue/DataReady', message, priority=1)
+    publisher.publish(topic="data_ready", messages=message)
     logger.info("Submitted run: %s", message.serialize(indent=1))
     return message.to_dict()
 
@@ -228,22 +228,15 @@ def login_icat() -> ICATClient:
     return icat_client
 
 
-def login_queue() -> QueueClient:
+def login_queue() -> Publisher:
     """
     Log into the QueueClient
 
     Returns:
         The client connected, or raise exception
     """
-    print("Logging into ActiveMQ")
-    activemq_client = QueueClient()
-    try:
-        activemq_client.connect()
-    except (ConnectionException, ValueError) as exp:
-        raise RuntimeError(
-            "Cannot connect to ActiveMQ with provided credentials in credentials.ini\n"
-            "Check that the ActiveMQ service is running, and the username, password and host are correct.") from exp
-    return activemq_client
+    publisher = Publisher()
+    return publisher
 
 
 def windows_to_linux_path(path) -> str:
@@ -346,7 +339,7 @@ def main(instrument: str,
 
     instrument = instrument.upper()
 
-    activemq_client = login_queue()
+    publisher = login_queue()
 
     submitted_runs = []
 
@@ -367,7 +360,7 @@ def main(instrument: str,
             continue
 
         submitted_runs.append(
-            submit_run(activemq_client,
+            submit_run(publisher,
                        rb_num,
                        instrument,
                        location,
