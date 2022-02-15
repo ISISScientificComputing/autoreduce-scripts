@@ -252,7 +252,7 @@ class TestManualSubmission(TestCase):
                           run_title=sub_run_args["run_title"],
                           software=sub_run_args["software"])
 
-        sub_run_args["active_mq_client"].send.assert_called_with('/queue/DataReady', message, priority=1)
+        sub_run_args["publisher"].publish.assert_called_with('data_ready', message)
 
     @patch('icat.Client')
     @patch('autoreduce_scripts.manual_operations.manual_submission.ICATClient.connect')
@@ -316,7 +316,7 @@ class TestManualSubmission(TestCase):
                           run_number=123,
                           run_title="")
 
-    @patch('autoreduce_scripts.manual_operations.manual_submission.login_queue')
+    @patch('confluent_kafka.Producer')
     @patch('autoreduce_scripts.manual_operations.manual_submission.get_run_data',
            return_value=('test/file/path', "2222", "some title"))
     @patch('autoreduce_scripts.manual_operations.manual_submission.submit_run')
