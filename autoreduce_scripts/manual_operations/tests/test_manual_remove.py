@@ -349,7 +349,6 @@ class TestManualRemove(TestCase):
         actual = self.manual_remove.validate_csv_input("t,e,s,t")
         self.assertEqual((False, []), actual)
 
-    # pylint:disable=no-self-use
     @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.find_run_versions_in_database")
     @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.process_results")
     @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.delete_records")
@@ -380,7 +379,6 @@ class TestManualRemove(TestCase):
         assert mock_process.call_count == 3
         assert mock_delete.call_count == 3
 
-    # pylint:disable=no-self-use
     @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.find_run_versions_in_database")
     @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.process_results")
     @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.delete_records")
@@ -398,7 +396,6 @@ class TestManualRemove(TestCase):
         mock_process.assert_called()
         mock_delete.assert_called()
 
-    # pylint:disable=no-self-use
     @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.find_run_versions_in_database")
     @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.process_results")
     @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.delete_records")
@@ -416,7 +413,6 @@ class TestManualRemove(TestCase):
         mock_process.assert_called()
         mock_delete.assert_called()
 
-    # pylint:disable=no-self-use
     @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.find_run_versions_in_database")
     @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.process_results")
     @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.delete_records")
@@ -519,7 +515,6 @@ class TestManualRemoveBatchRuns(TestCase):
         self.batch_run2 = make_test_batch_run(self.experiment, self.instrument, "2")
         self.batch_run3 = make_test_batch_run(self.experiment, self.instrument, "3")
 
-    # pylint:disable=no-self-use
     @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.find_run_versions_in_database")
     @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.process_results")
     @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.delete_records")
@@ -533,7 +528,6 @@ class TestManualRemoveBatchRuns(TestCase):
         mock_process.assert_called_once()
         mock_delete.assert_called_once()
 
-    # pylint:disable=no-self-use
     @patch("autoreduce_scripts.manual_operations.manual_remove.ManualRemove.find_run_versions_in_database")
     def test_remove_without_mocks(self, mock_find):
         """
