@@ -1,0 +1,53 @@
+[build-system]
+requires = ["wheel", "setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autoreduce_scripts"
+version = "22.0.0.dev43"
+description = "ISIS Autoreduce helper scripts"
+license = { text = "GNU General Public License" }
+classifiers = ["Framework :: Django", "Programming Language :: Python :: 3"]
+dependencies = [
+    "autoreduce_db==22.0.0.dev36",
+    "autoreduce_utils==22.0.0.dev22",
+    "Django",                         # will be matched with requirement in autoreduce_db
+    "fire==0.4.0",
+    "h5py==3.7.0",                    # for reading the RB number from the datafile
+    "GitPython==3.1.27",              # for backup_reduction_scripts.py
+    "stomp.py",
+]
+
+[project.urls]
+"Repository" = "https://github.com/autoreduction/scripts"
+"Wiki" = "https://github.com/autoreduction/queue-processor/wiki"
+
+[project.scripts]
+autoreduce-manual-remove = "autoreduce_scripts.manual_operations.manual_remove:fire_entrypoint"
+autoreduce-manual-submission = "autoreduce_scripts.manual_operations.manual_submission:fire_entrypoint"
+autoreduce-check-time-since-last-run = "autoreduce_scripts.checks.daily.time_since_last_run:main"
+
+[tool.yapf]
+column_limit = 120
+based_on_style = "pep8"
+
+[tool.yapfignore]
+ignore_patterns = ["setup.py", "**/migrations", "venv/", "venv3/"]
+
+[tool.pylint.MAIN]
+load-plugins = ["pylint_django"]
+django-settings-module = "autoreduce_django.settings"
+extension-pkg-whitelist = ["pydantic"]
+disable = [
+    "R0904", # too-many-public-methods
+    "R0902", # too-many-instance-attributes
+    "R0903", # too-few-public-methods
+    "R1705", # no-else-return
+    "C0114", # missing-module-docstring
+    "C0115", # missing-class-docstring
+]
+ignore = [".git", "migrations"]
+[tool.pylint.FORMAT]
+max-line-length = 120
+[tool.pylint.DESIGN]
+max-args = 8
