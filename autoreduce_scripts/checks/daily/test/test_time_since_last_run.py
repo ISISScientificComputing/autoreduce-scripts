@@ -9,7 +9,7 @@ from autoreduce_scripts.checks import setup_django  # pylint:disable=wrong-impor
 from autoreduce_db.reduction_viewer.models import Instrument, ReductionRun
 from autoreduce_scripts.checks.daily.time_since_last_run import BASE_INSTRUMENT_LASTRUNS_TXT_DIR, main
 
-# pylint:disable=no-member,no-self-use
+# pylint:disable=no-member
 
 setup_django()
 

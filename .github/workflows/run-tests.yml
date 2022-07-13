@@ -1,5 +1,5 @@
 name: Tests
-on: [ push ]
+on: [push]
 
 jobs:
   pytest:
@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.8']
+        python-version: ["3.8"]
 
     steps:
       - uses: actions/checkout@v2
@@ -48,7 +48,7 @@ jobs:
 
       - name: Build package for publishing
         if: ${{ github.ref == 'refs/heads/main' }}
-        run: python3 -m pip install wheel && python3 setup.py sdist bdist_wheel
+        run: python3 -m pip install --upgrade build wheel && python -m build
 
       - name: Publish distribution 📦 to PyPI
         if: ${{ github.ref == 'refs/heads/main' }}
@@ -62,7 +62,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.6', '3.8']
+        python-version: ["3.8"]
 
     steps:
       - uses: actions/checkout@v2
@@ -82,7 +82,6 @@ jobs:
       - name: Pip install
         run: |
           pip install --upgrade pip
-          [ -f "requirements.txt" ] && pip install -r requirements.txt || echo "No requirements.txt found"
           pip install -e .
 
   Inspection:
@@ -91,7 +90,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.8']
+        python-version: ["3.8"]
 
     steps:
       - uses: actions/checkout@v2
@@ -115,4 +114,3 @@ jobs:
       - uses: autoreduction/autoreduce-actions/code_inspection@main
         with:
           package_name: autoreduce_scripts
-

@@ -50,7 +50,6 @@ def temp_hdffile():
         pass
 
 
-# pylint:disable=no-self-use
 class TestManualSubmission(TestCase):
     """
     Test manual_submission.py

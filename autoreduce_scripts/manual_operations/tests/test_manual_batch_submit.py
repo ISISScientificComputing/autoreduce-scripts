@@ -6,7 +6,6 @@ from autoreduce_scripts.manual_operations.manual_batch_submit import main as sub
 from autoreduce_scripts.manual_operations.tests.test_manual_remove import create_experiment_and_instrument
 
 
-# pylint:disable=no-self-use
 class TestManualBatchSubmission(TestCase):
     """
     Test manual_submission.py
