@@ -6,6 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "autoreduce_scripts"
 version = "22.0.0.dev43"
 description = "ISIS Autoreduce helper scripts"
+readme = "README.md"
 license = { text = "GNU General Public License" }
 classifiers = ["Framework :: Django", "Programming Language :: Python :: 3"]
 dependencies = [
