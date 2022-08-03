@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "autoreduce_scripts"
-version = "22.0.0.dev43"
+version = "22.0.0.dev44"
 description = "ISIS Autoreduce helper scripts"
 readme = "README.md"
 license = { text = "GNU General Public License" }
 classifiers = ["Framework :: Django", "Programming Language :: Python :: 3"]
 dependencies = [
-    "autoreduce_db==22.0.0.dev36",
-    "autoreduce_utils==22.0.0.dev22",
+    "autoreduce_db==22.0.0.dev37",
+    "autoreduce_utils==22.0.0.dev23",
     "Django",                         # will be matched with requirement in autoreduce_db
     "fire==0.4.0",
     "h5py==3.7.0",                    # for reading the RB number from the datafile
