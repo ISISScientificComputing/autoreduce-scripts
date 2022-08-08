@@ -19,6 +19,9 @@ dependencies = [
     "stomp.py",
 ]
 
+[project.optional-dependencies]
+dev = []
+
 [project.urls]
 "Repository" = "https://github.com/autoreduction/scripts"
 "Wiki" = "https://github.com/autoreduction/queue-processor/wiki"
