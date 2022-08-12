@@ -31,4 +31,4 @@ repos:
     rev: 5.0.4
     hooks:
       - id: flake8
-        args: ['--extend-ignore=E501']
+        args: ['--extend-ignore=E501,E402,E265']
