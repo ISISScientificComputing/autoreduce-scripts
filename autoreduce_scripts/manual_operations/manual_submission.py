@@ -160,7 +160,7 @@ def get_run_data_from_icat(instrument, run_number, file_ext) -> Tuple[str, str]:
 
     if not datafile:
         raise RuntimeError(f"Cannot find datafile '{file_name}' in ICAT.")
-    return datafile[0].location, datafile[0].dataset.investigation.name # pylint: disable=unsubscriptable-object
+    return datafile[0].location, datafile[0].dataset.investigation.name  # pylint: disable=unsubscriptable-object
 
 
 def overwrite_icat_calibration_placeholder(location: str, value: Union[str, int], key: str) -> str:
