@@ -20,7 +20,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = []
+dev = ["parameterized==0.8.1"]
 
 [project.urls]
 "Repository" = "https://github.com/autoreduction/scripts"
