@@ -34,9 +34,11 @@ jobs:
         with:
           package_name: autoreduce_scripts
 
+      - name: Install Tox
+        run: python -m pip install tox tox-gh-actions
+
       - name: Run unit tests
-        run: >-
-          pytest --cov=autoreduce_scripts --cov-report=xml autoreduce_scripts
+        run: tox -e pytest
 
       - uses: codecov/codecov-action@v3
         with:
@@ -111,6 +113,8 @@ jobs:
         with:
           package_name: autoreduce_scripts
 
-      - uses: autoreduction/autoreduce-actions/code_inspection@main
-        with:
-          package_name: autoreduce_scripts
+      - name: Install Tox
+        run: python -m pip install tox tox-gh-actions
+
+      - name: Run code inspection with tox
+        run: tox -e code_inspection
